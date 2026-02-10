@@ -1,0 +1,40 @@
+
+import os
+from pydantic_settings import BaseSettings
+from dotenv import load_dotenv
+
+# Force load .env from project root
+# config.py is in backend/core/
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+env_path = os.path.join(project_root, '.env')
+load_dotenv(env_path)
+
+class Settings(BaseSettings):
+    PROJECT_NAME: str = "Smart Doc Tracker API"
+    API_V1_STR: str = "/api/v1"
+    
+    # Database
+    DATABASE_URL: str = os.getenv("DATABASE_URL", "")
+    
+    # Supabase - We use these for auth verification
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "") # Anon Key is sufficient for client operations
+    
+    # JWT Settings (If verifying locally without API call, need JWT_SECRET)
+    # But for now we will trust Supabase client based verification or simple decoding if secret provided
+    SUPABASE_JWT_SECRET: str = os.getenv("SUPABASE_JWT_SECRET", "") 
+
+    # Azure OpenAI Settings
+    AZURE_OPENAI_API_KEY: str = os.getenv("AZURE_OPENAI_API_KEY", "")
+    AZURE_OPENAI_ENDPOINT: str = os.getenv("AZURE_OPENAI_ENDPOINT", "")
+    AZURE_OPENAI_API_VERSION: str = os.getenv("AZURE_OPENAI_API_VERSION", "2024-02-15-preview")
+    AZURE_OPENAI_DEPLOYMENT: str = os.getenv("AZURE_OPENAI_DEPLOYMENT", "gpt-4")
+
+    # Line Messaging API
+    LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
+    LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "")
+
+    class Config:
+        case_sensitive = True
+
+settings = Settings()

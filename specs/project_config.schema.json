@@ -1,0 +1,74 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "type": "object",
+  "properties": {
+    "project": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "type": "object",
+          "properties": {
+            "name": {
+              "type": "string",
+              "description": "Project name"
+            },
+            "version": {
+              "type": "string",
+              "description": "Project version"
+            },
+            "description": {
+              "type": "string",
+              "description": "Brief description of the project"
+            }
+          },
+          "required": [
+            "name",
+            "version",
+            "description"
+          ]
+        },
+        "tech_stack": {
+          "type": "object",
+          "properties": {
+            "frontend": {
+              "type": "object"
+            },
+            "backend": {
+              "type": "object"
+            },
+            "database": {
+              "type": "object"
+            }
+          }
+        },
+        "paths": {
+          "type": "object",
+          "properties": {
+            "docs_root": {
+              "type": "string"
+            },
+            "frontend_root": {
+              "type": "string"
+            },
+            "backend_root": {
+              "type": "string"
+            }
+          }
+        },
+        "conventions": {
+          "type": "object",
+          "description": "Naming conventions for files, classes, etc."
+        }
+      },
+      "required": [
+        "meta",
+        "tech_stack",
+        "paths",
+        "conventions"
+      ]
+    }
+  },
+  "required": [
+    "project"
+  ]
+}

@@ -1,0 +1,26 @@
+version: "1.0.0"
+project:
+  name: "Smart Doc Deadline Tracker"
+  description: "AI-powered document deadline tracking system"
+
+services:
+  frontend:
+    type: "nextjs"
+    path: "./frontend"
+    port: 3000
+    health_path: "/"
+    build_cmd: "npm run build"
+    start_cmd: "npm run start"
+    dev_cmd: "npm run dev"
+
+  backend:
+    type: "fastapi"
+    path: "./backend"
+    port: 8000
+    health_path: "/health"
+    start_cmd: "uvicorn main:app --host 0.0.0.0 --port 8000"
+    dev_cmd: "uvicorn main:app --reload"
+
+environment:
+  python_version: "3.10+"
+  node_version: "18+"
