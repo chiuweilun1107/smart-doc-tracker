@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Badge } from "@/components/ui/badge"
 import { apiClient } from "@/lib/api"
+import { toast, confirm } from "@/lib/toast"
 import { Bell, Trash2, Plus, Loader2 } from "lucide-react"
 
 type NotificationRule = {
@@ -52,20 +53,22 @@ export function NotificationRulesCard() {
             fetchRules() // Refresh list
         } catch (error) {
             console.error("Failed to add rule", error)
-            alert("新增失敗")
+            toast("新增規則失敗", "error")
         } finally {
             setAdding(false)
         }
     }
 
     const handleDeleteRule = async (id: string) => {
-        if (!confirm("確定要刪除此規則嗎？")) return
+        const confirmed = await confirm("確定要刪除此規則嗎？")
+        if (!confirmed) return
         try {
             await apiClient.delete(`/settings/rules/${id}`)
             setRules(rules.filter(r => r.id !== id))
+            toast("規則已刪除", "success")
         } catch (error) {
             console.error("Failed to delete rule", error)
-            alert("刪除失敗")
+            toast("刪除失敗", "error")
         }
     }
 

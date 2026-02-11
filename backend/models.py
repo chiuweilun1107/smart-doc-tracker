@@ -14,6 +14,8 @@ class Profile(Base):
     email = Column(String, nullable=False)
     full_name = Column(String, nullable=True)
     line_user_id = Column(String, nullable=True) # Line User ID for push messages
+    line_verification_code = Column(String(6), nullable=True)  # 6-digit verification code
+    line_verification_expires_at = Column(DateTime(timezone=True), nullable=True)  # Code expiration
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
@@ -69,7 +71,28 @@ class NotificationRule(Base):
     __tablename__ = "notification_rules"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)  # Owner of this rule
     days_before = Column(Integer, nullable=False) # e.g., 7, 3, 1, 0
     severity = Column(String, default="info") # info, warning, critical
     is_active = Column(Boolean, default=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("Profile", backref="notification_rules")
+
+# Notification Log (Audit trail of sent notifications)
+class NotificationLog(Base):
+    __tablename__ = "notification_logs"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    event_id = Column(UUID(as_uuid=True), ForeignKey("deadline_events.id"), nullable=False)
+    notification_type = Column(String, nullable=False)  # 'line', 'email', etc.
+    status = Column(String, nullable=False)  # 'sent', 'failed', 'pending'
+    message = Column(Text, nullable=True)  # The actual message content
+    error_message = Column(Text, nullable=True)  # Error if failed
+    sent_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("Profile", backref="notification_logs")
+    event = relationship("DeadlineEvent", backref="notification_logs")

@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from typing import List, Any
+from typing import List
 from backend.core import deps
 from backend.core.config import settings
 from backend.schemas.project import Project, ProjectCreate, ProjectUpdate, ProjectList
@@ -16,7 +16,7 @@ supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVIC
 def read_projects(
     skip: int = 0,
     limit: int = 100,
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Retrieve projects owned by current user.
@@ -37,7 +37,7 @@ def read_projects(
 def create_project(
     *,
     project_in: ProjectCreate,
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Create new project.
@@ -64,7 +64,7 @@ def create_project(
 @router.get("/{id}", response_model=Project)
 def read_project(
     id: uuid.UUID,
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Get project by ID.

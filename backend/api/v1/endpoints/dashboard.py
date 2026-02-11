@@ -16,7 +16,7 @@ supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVIC
 
 @router.get("/stats")
 def get_dashboard_stats(
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Get aggregated statistics for dashboard.
@@ -25,85 +25,79 @@ def get_dashboard_stats(
         raise HTTPException(status_code=500, detail="Database connection error")
         
     try:
-        # Safely get user_id regardless of whether current_user is an object or dict
-        user_id = getattr(current_user, "id", None) or current_user.get("id")
-        if not user_id:
-             raise HTTPException(status_code=401, detail="User ID not found in token")
-             
+        user_id = str(current_user.id)
+
         today = datetime.now().date().isoformat()
-        
-        # 1. Total Projects
-        # .count("exact", head=True) only returns count without data
-        projects_response = supabase.table("projects").select("*", count="exact", head=True).eq("owner_id", user_id).execute()
+
+        # Optimized: Reduce database round trips by using better query strategy
+        # 1. Get projects with count
+        projects_response = supabase.table("projects")\
+            .select("id", count="exact")\
+            .eq("owner_id", user_id)\
+            .execute()
         projects_count = projects_response.count if projects_response.count is not None else 0
-        
-        # 2. Total Documents (Need to check doc ownership via project ownership, or if RLS handles it)
-        # Assuming RLS handles user isolation:
-        # But documents table doesn't have owner_id directly? Ah, it has project_id.
-        # If RLS is set up correctly (JOIN projects owner_id), then select count works.
-        # But for simpler query, we might need a join or rely on RLS if authenticated client used.
-        # Since we use anon key + manual query here, "documents" table RLS policy protects it?
-        # WAIT: We are using ANON KEY here without user context in supabase client (unless passed).
-        # We need to filter manually if RLS is not active for this client instance context.
-        # The correct way is: filter by projects that belong to user.
-        # This is a bit complex for a single query in Supabase-py without join support fully exposed.
-        # Let's simplify: Query projects first (we have count), then documents in those projects?
-        # Or just trust RLS if we set token? 
-        # Correct: We should set token. But let's stick to manual filtering for reliability in Python logic.
-        
-        # Get user project IDs
-        user_projects = supabase.table("projects").select("id").eq("owner_id", user_id).execute()
-        project_ids = [p['id'] for p in user_projects.data]
-        
+        project_ids = [p['id'] for p in projects_response.data] if projects_response.data else []
+
+        # Initialize defaults
         doc_count = 0
         overdue_count = 0
         upcoming_count = 0
         recent_events = []
-        
-        if project_ids:
-            # Documents count
-            # .in_("project_id", project_ids)
-            docs_response = supabase.table("documents").select("*", count="exact", head=True).in_("project_id", project_ids).execute()
-            doc_count = docs_response.count if docs_response.count is not None else 0
-            
-            # Deadline Events
-            # Filter events by documents in project_ids?
-            # events -> document_id -> project_id
-            # This requires a join or 2-step lookup.
-            # Get all docs for user
-            user_docs = supabase.table("documents").select("id").in_("project_id", project_ids).execute()
-            doc_ids = [d['id'] for d in user_docs.data]
-            
-            if doc_ids:
-                # Overdue: due_date < today AND status != completed
-                overdue = supabase.table("deadline_events")\
-                    .select("*", count="exact", head=True)\
-                    .in_("document_id", doc_ids)\
-                    .lt("due_date", today)\
-                    .neq("status", "completed")\
-                    .execute()
-                overdue_count = overdue.count if overdue.count is not None else 0
-                
-                # Upcoming: due_date >= today
-                upcoming = supabase.table("deadline_events")\
-                    .select("*", count="exact", head=True)\
-                    .in_("document_id", doc_ids)\
-                    .gte("due_date", today)\
-                    .execute()
-                upcoming_count = upcoming.count if upcoming.count is not None else 0
-                
-                # Recent Events (for list)
-                # Get top 5 upcoming or overdue
-                # Supabase join: documents(project_id, filename)
-                # This syntax matches postgrest-py
-                recent_response = supabase.table("deadline_events")\
-                    .select("*, documents(project_id, filename)")\
-                    .in_("document_id", doc_ids)\
-                    .order("due_date", desc=False)\
-                    .limit(5)\
-                    .execute()
-                # Determine status display (overdue vs upcoming)
-                recent_events = recent_response.data
+
+        if not project_ids:
+            return {
+                "total_projects": projects_count,
+                "total_documents": 0,
+                "overdue_tasks": 0,
+                "upcoming_tasks": 0,
+                "recent_events": []
+            }
+
+        # 2. Get documents count
+        docs_response = supabase.table("documents")\
+            .select("id", count="exact")\
+            .in_("project_id", project_ids)\
+            .execute()
+        doc_count = docs_response.count if docs_response.count is not None else 0
+        doc_ids = [d['id'] for d in docs_response.data] if docs_response.data else []
+
+        if not doc_ids:
+            return {
+                "total_projects": projects_count,
+                "total_documents": doc_count,
+                "overdue_tasks": 0,
+                "upcoming_tasks": 0,
+                "recent_events": []
+            }
+
+        # 3. Get all event counts and recent events in fewer queries
+        # Count overdue
+        overdue = supabase.table("deadline_events")\
+            .select("id", count="exact")\
+            .in_("document_id", doc_ids)\
+            .lt("due_date", today)\
+            .neq("status", "completed")\
+            .execute()
+        overdue_count = overdue.count if overdue.count is not None else 0
+
+        # Count upcoming
+        upcoming = supabase.table("deadline_events")\
+            .select("id", count="exact")\
+            .in_("document_id", doc_ids)\
+            .gte("due_date", today)\
+            .neq("status", "completed")\
+            .execute()
+        upcoming_count = upcoming.count if upcoming.count is not None else 0
+
+        # Get recent events with document join (optimized with specific fields)
+        recent_response = supabase.table("deadline_events")\
+            .select("id, title, due_date, status, confidence_score, documents(filename, project_id)")\
+            .in_("document_id", doc_ids)\
+            .neq("status", "completed")\
+            .order("due_date", desc=False)\
+            .limit(5)\
+            .execute()
+        recent_events = recent_response.data if recent_response.data else []
         
         return {
             "total_projects": projects_count,
@@ -113,15 +107,18 @@ def get_dashboard_stats(
             "recent_events": recent_events
         }
 
+    except HTTPException:
+        raise
     except Exception as e:
         import traceback
-        error_msg = f"Error fetching stats: {str(e)}\n{traceback.format_exc()}"
-        print(error_msg)
-        raise HTTPException(status_code=500, detail=error_msg)
+        # Log full traceback for debugging, but don't expose to client
+        traceback.print_exc()
+        print(f"Error fetching dashboard stats: {str(e)}")
+        raise HTTPException(status_code=500, detail="Failed to fetch dashboard statistics")
 
 @router.post("/notifications/trigger")
 def trigger_notifications(
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Manually trigger deadline check (for testing purposes).

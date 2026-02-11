@@ -18,6 +18,7 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { apiClient } from "@/lib/api"
+import { toast } from "@/lib/toast"
 import { Plus } from "lucide-react"
 
 const formSchema = z.object({
@@ -49,7 +50,7 @@ export function NewProjectDialog({ onProjectCreated }: NewProjectDialogProps) {
             onProjectCreated()
         } catch (error) {
             console.error("Error creating project:", error)
-            alert("新增專案失敗，請稍後再試。")
+            toast("新增專案失敗，請稍後再試", "error")
         } finally {
             setLoading(false)
         }

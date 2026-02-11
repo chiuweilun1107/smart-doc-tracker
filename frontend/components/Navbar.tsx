@@ -17,8 +17,10 @@ export function Navbar() {
     const router = useRouter()
 
     const handleLogout = async () => {
-        await supabase.auth.signOut()
-        router.push("/login")
+        if (confirm("確定要登出嗎？")) {
+            await supabase.auth.signOut()
+            router.push("/login")
+        }
     }
 
     return (
@@ -39,6 +41,8 @@ export function Navbar() {
                                 <Button
                                     variant="ghost"
                                     size="sm"
+                                    aria-label={label}
+                                    aria-current={isActive ? "page" : undefined}
                                     className={`gap-1.5 text-sm ${
                                         isActive
                                             ? "bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300"
@@ -58,6 +62,7 @@ export function Navbar() {
                     variant="ghost"
                     size="sm"
                     onClick={handleLogout}
+                    aria-label="登出"
                     className="gap-1.5 text-sm text-slate-500 hover:text-red-600 dark:text-slate-400 dark:hover:text-red-400 shrink-0"
                 >
                     <LogOut className="w-4 h-4" />

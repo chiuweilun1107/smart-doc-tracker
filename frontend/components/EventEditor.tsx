@@ -1,6 +1,7 @@
 
 import { useState } from "react"
 import { apiClient } from "@/lib/api"
+import { toast } from "@/lib/toast"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -37,7 +38,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
             onUpdate() // Refresh data
         } catch (error) {
             console.error("Update failed", error)
-            alert("更新失敗")
+            toast("更新事件失敗", "error")
         } finally {
             setSaving(false)
         }

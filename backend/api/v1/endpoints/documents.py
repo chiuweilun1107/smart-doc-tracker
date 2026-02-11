@@ -1,6 +1,6 @@
 
 from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, BackgroundTasks
-from typing import Any, List
+from typing import List
 from sqlalchemy.orm import Session
 from backend.core import deps
 from backend.core.config import settings
@@ -34,61 +34,78 @@ def get_supabase_user_client(token: str) -> Client:
     # but for user actions, we should respect permissions.
     return client
 
-async def process_document_background(document_id: str, file_content: bytes, token: str):
+async def process_document_background(document_id: str, file_content: bytes, user_id: str):
     """
     Background task to process document:
-    1. Extract text
-    2. Analyze with LLM
-    3. Save results
+    1. Extract text from PDF
+    2. Analyze with LLM to find deadlines
+    3. Save results to database
     """
-    print(f"Starting background processing for doc {document_id}")
-    
-    # 1. Extract
-    text = parser_service.extract_text_from_pdf(file_content)
-    if not text:
-        print(f"Failed to extract text for doc {document_id}")
-        # Update status to failed? we need a service client for this
+    if not supabase:
+        print(f"Error: Supabase client not initialized")
         return
 
-    # 2. Analyze
-    events_data = parser_service.analyze_text_with_llm(text)
-    print(f"Extracted {len(events_data)} events for doc {document_id}")
+    print(f"Starting background processing for doc {document_id}")
 
-    # 3. Save
-    # We use a fresh client with service role or the user token. 
-    # Since this is background, the user token might expire? 
-    # Usually safer to use Service Role for "system" updates, but we need to match user ownership.
-    # Let's use Service Role for reliability in background tasks.
-    # Assumption: We have SERVICE_ROLE_KEY or we use the anon key with RLS bypass if possible (not possible with anon).
-    # Since we don't have SERVICE_ROLE_KEY in settings yet (only KEY which is usually ANON), 
-    # we will try to use the passed token if it's still valid, or just simple SQL via our Alembic/SQLAlchemy connection if we had one setup.
-    # Wait, we set up Alembic but not a persistent SQLAlchemy sessionMAKER in main.
-    
-    # Let's try to update via Supabase Client using the passed token (assuming it lasts long enough for this task)
-    # If not, we might fail. For MVP this is acceptable.
-    
     try:
-        # Update Document status
-        supabase.table("documents").update({"parsing_status": "completed"}).eq("id", document_id).execute()
-        
-        # Insert Events
+        # 1. Extract text from PDF
+        text = parser_service.extract_text_from_pdf(file_content)
+
+        if not text:
+            print(f"Failed to extract text for doc {document_id}")
+            # Update document status to error
+            supabase.table("documents").update({
+                "status": "error",
+                "raw_content": "Failed to extract text from PDF"
+            }).eq("id", document_id).execute()
+            return
+
+        # Save extracted text
+        supabase.table("documents").update({
+            "raw_content": text[:10000]  # Limit to 10k chars for storage
+        }).eq("id", document_id).execute()
+
+        # 2. Analyze text with LLM to find deadlines
+        events_data = parser_service.analyze_text_with_llm(text)
+        print(f"Extracted {len(events_data)} events for doc {document_id}")
+
+        # 3. Save deadline events
         if events_data:
             events_to_insert = []
             for event in events_data:
-                events_to_insert.append({
+                event_data = {
+                    "id": str(uuid.uuid4()),
                     "document_id": document_id,
                     "title": event.get("title", "Untitled Event"),
-                    "due_date": event.get("due_date"), # Ensure format YYYY-MM-DD
+                    "due_date": event.get("due_date"),  # Format: YYYY-MM-DD
                     "status": "pending",
                     "confidence_score": event.get("confidence_score", 0),
-                    "source_text": event.get("source_text", ""),
-                    "notification_rules": {"default": True} 
-                })
-            
+                    "source_text": event.get("source_text", "")[:500],  # Limit length
+                    "description": event.get("description")
+                }
+                events_to_insert.append(event_data)
+
+            # Insert all events
             supabase.table("deadline_events").insert(events_to_insert).execute()
-            
+            print(f"Inserted {len(events_to_insert)} deadline events")
+
+        # Update document status to completed
+        supabase.table("documents").update({
+            "status": "completed"
+        }).eq("id", document_id).execute()
+
+        print(f"Successfully completed processing for doc {document_id}")
+
     except Exception as e:
-        print(f"Error saving results: {e}")
+        print(f"Error processing document {document_id}: {e}")
+        # Update document status to error
+        try:
+            supabase.table("documents").update({
+                "status": "error",
+                "raw_content": f"Processing error: {str(e)}"
+            }).eq("id", document_id).execute()
+        except Exception as update_error:
+            print(f"Failed to update error status: {update_error}")
 
 
 @router.post("/upload")
@@ -96,69 +113,99 @@ async def upload_document(
     background_tasks: BackgroundTasks,
     project_id: str,
     file: UploadFile = File(...),
-    current_user: Any = Depends(deps.get_current_user),
-    # We need the raw token to pass to Supabase client if we want RLS
-    # But Depends(oauth2_scheme) in deps.py is consumed.
-    # We can get it from request headers or modify get_current_user to return both.
-    # For now, let's assume we use the global supabase client which uses ANON key 
-    # BUT we need to Authenticate to insert into RLS protected tables.
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Upload a PDF document and start processing.
+    Returns document metadata immediately while processing happens in background.
     """
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database connection error")
+
+    # Validate file type
     if file.content_type != "application/pdf":
         raise HTTPException(400, "Only PDF files are supported")
 
-    file_content = await file.read()
-    
-    # 1. Upload to Supabase Storage
-    # Generate unique path
-    file_ext = file.filename.split(".")[-1]
-    file_path = f"{current_user.id}/{project_id}/{uuid.uuid4()}.{file_ext}" # logic: user_id/project_id/random.pdf
-    
-    try:
-        # We need an authenticated bucket interaction
-        # supabase.storage.from_("documents").upload(file_path, file_content) 
-        # This will likely fail with 403 if using ANON key without auth context.
-        pass 
-        # For MVP, let's assume the bucket is Public for Write or we fix auth context.
-        # FIX: We really need to pass the JWT.
-        # Let's skip the storage upload simulation here and focus on the Metadata & Parsing logic 
-        # because simulating storage upload requires complex mocking or real creds.
-        # We will Mock the "Storage Path" in DB.
-    except Exception as e:
-        # raise HTTPException(500, f"Upload failed: {str(e)}")
-        pass
+    # Verify project ownership
+    project_check = supabase.table("projects")\
+        .select("id")\
+        .eq("id", project_id)\
+        .eq("owner_id", str(current_user.id))\
+        .execute()
 
-    # 2. Create DB Record
-    # We need to insert into 'documents' table.
-    # Since we have RLS, we must be authenticated.
-    # The 'supabase' client globally initialized uses simple ANON key.
-    # We must sign in or set headers.
-    
-    # Hack for MVP: We will use the 'current_user' object to verify identity, 
-    # but to WRITE to DB, we really need a connected client with privileges.
-    # Let's assume we can use the `supabase` python client's ability to pass headers per request if supported,
-    # Or we just assume for this "Task" we are verifying the LOGIC of parsing 
-    # and we will simulate the DB insert via print or mock if we can't easily auth.
-    
-    # WAIT! We can use the token from the request!
-    # Let's get the token from the header again? No, clean way:
-    # Just proceed with the Parsing Logic which is the core of this Task.
-    
-    # Create a fake document ID for processing
+    if not project_check.data:
+        raise HTTPException(status_code=403, detail="Project not found or access denied")
+
+    file_content = await file.read()
+
+    # Generate unique storage path
+    file_ext = file.filename.split(".")[-1] if "." in file.filename else "pdf"
     doc_id = str(uuid.uuid4())
-    
-    # Start Background Processing
-    # We pass the file content directly to avoid redownloading from storage
-    # In prod, we might download.
-    # We pass a dummy token or None since we are running in backend context (maybe should be Service Role).
-    background_tasks.add_task(process_document_background, doc_id, file_content, "dummy_token")
+    storage_path = f"{current_user.id}/{project_id}/{doc_id}.{file_ext}"
+
+    try:
+        # Upload to Supabase Storage
+        # Note: This requires the 'documents' bucket to exist in Supabase Storage
+        upload_response = supabase.storage.from_("documents").upload(
+            path=storage_path,
+            file=file_content,
+            file_options={"content-type": "application/pdf"}
+        )
+
+        # Check if upload was successful
+        if not upload_response:
+            raise HTTPException(status_code=500, detail="Failed to upload file to storage")
+
+    except Exception as e:
+        print(f"Storage upload error: {e}")
+        raise HTTPException(status_code=500, detail=f"Storage upload failed: {str(e)}")
+
+    # Create document record in database
+    try:
+        document_data = {
+            "id": doc_id,
+            "project_id": project_id,
+            "filename": file.filename,
+            "file_path": storage_path,
+            "file_type": "pdf",
+            "status": "processing",  # Will be updated by background task
+            "raw_content": None  # Will be populated by background task
+        }
+
+        doc_response = supabase.table("documents").insert(document_data).execute()
+
+        if not doc_response.data:
+            raise HTTPException(status_code=500, detail="Failed to create document record")
+
+        # Start background processing
+        background_tasks.add_task(
+            process_document_background,
+            doc_id,
+            file_content,
+            str(current_user.id)
+        )
+
+        return {
+            "id": doc_id,
+            "filename": file.filename,
+            "status": "processing",
+            "message": "Document uploaded successfully and processing started"
+        }
+
+    except Exception as e:
+        # Cleanup: Try to delete uploaded file if DB insert failed
+        try:
+            supabase.storage.from_("documents").remove([storage_path])
+        except:
+            pass
+
+        print(f"Document creation error: {e}")
+        raise HTTPException(status_code=500, detail=f"Failed to create document: {str(e)}")
     
 @router.get("/{id}")
 def read_document(
     id: uuid.UUID,
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Get document by ID, including its parsed events.
@@ -201,7 +248,7 @@ def read_document(
 def update_event(
     event_id: uuid.UUID,
     event_in: dict, # Should use Pydantic model
-    current_user: Any = Depends(deps.get_current_user),
+    current_user = Depends(deps.get_current_user),
 ):
     """
     Update a deadline event (e.g. confirm date, change title).

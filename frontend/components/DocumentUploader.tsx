@@ -6,6 +6,7 @@ import { useDropzone } from "react-dropzone"
 import { UploadCloud, File, Loader2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { apiClient } from "@/lib/api"
+import { toast } from "@/lib/toast"
 import { cn } from "@/lib/utils"
 
 interface DocumentUploaderProps {
@@ -35,8 +36,8 @@ export function DocumentUploader({ projectId, onUploadSuccess }: DocumentUploade
             onUploadSuccess(res.data.id)
         } catch (error) {
             console.error("Upload failed", error)
-            alert("上傳失敗")
-        } finally {
+            toast("文件上傳失敗", "error")
+        } finally{
             setUploading(false)
         }
     }, [projectId, onUploadSuccess])
