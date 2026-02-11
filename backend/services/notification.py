@@ -17,7 +17,7 @@ logger = logging.getLogger(__name__)
 
 class NotificationService:
     def __init__(self):
-        self.email_service = EmailService()
+        self.email_service = None  # Initialized with DB session in check_deadlines
 
     def check_deadlines(self):
         """
@@ -28,6 +28,7 @@ class NotificationService:
         logger.info(f"Starting deadline check at {datetime.now()}")
 
         db = SessionLocal()
+        self.email_service = EmailService(db=db)
         try:
             events = db.query(DeadlineEvent).filter(
                 DeadlineEvent.status != "completed"

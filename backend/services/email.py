@@ -1,3 +1,4 @@
+import json
 import logging
 import smtplib
 from email.mime.text import MIMEText
@@ -8,31 +9,78 @@ logger = logging.getLogger(__name__)
 
 
 class EmailService:
-    def __init__(self):
-        self.provider = settings.EMAIL_PROVIDER  # "smtp" or "resend"
+    """Email service that reads config from system_settings DB table, with .env fallback."""
 
+    def __init__(self, db=None):
+        self.provider = settings.EMAIL_PROVIDER
+        self._smtp_host = settings.SMTP_HOST
+        self._smtp_port = settings.SMTP_PORT
+        self._smtp_user = settings.SMTP_USER
+        self._smtp_password = settings.SMTP_PASSWORD
+        self._smtp_from_name = settings.SMTP_FROM_NAME
+        self._resend_api_key = settings.RESEND_API_KEY
+        self._resend_from_email = settings.RESEND_FROM_EMAIL
+
+        # Override with DB config if available
+        if db is not None:
+            self._load_from_db(db)
+
+        # Determine enabled state
         if self.provider == "smtp":
-            self.enabled = bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
+            self.enabled = bool(self._smtp_user and self._smtp_password)
             if not self.enabled:
                 logger.warning("SMTP credentials not configured — email disabled")
         elif self.provider == "resend":
-            self.enabled = bool(settings.RESEND_API_KEY)
+            self.enabled = bool(self._resend_api_key)
             if self.enabled:
                 import resend
-                resend.api_key = settings.RESEND_API_KEY
+                resend.api_key = self._resend_api_key
             else:
                 logger.warning("Resend API key not configured — email disabled")
         else:
             self.enabled = False
             logger.warning(f"Unknown EMAIL_PROVIDER: {self.provider}")
 
+    def _load_from_db(self, db):
+        """Load email config from system_settings table."""
+        try:
+            from sqlalchemy import text
+            row = db.execute(text("SELECT value FROM system_settings WHERE key = 'email_provider'")).fetchone()
+            if row and row[0]:
+                self.provider = row[0] if isinstance(row[0], str) else str(row[0])
+
+            smtp_row = db.execute(text("SELECT value FROM system_settings WHERE key = 'smtp_config'")).fetchone()
+            if smtp_row and smtp_row[0]:
+                cfg = smtp_row[0] if isinstance(smtp_row[0], dict) else json.loads(smtp_row[0])
+                if cfg.get("host"):
+                    self._smtp_host = cfg["host"]
+                if cfg.get("port"):
+                    self._smtp_port = int(cfg["port"])
+                if cfg.get("user"):
+                    self._smtp_user = cfg["user"]
+                if cfg.get("password"):
+                    self._smtp_password = cfg["password"]
+                if cfg.get("from_name"):
+                    self._smtp_from_name = cfg["from_name"]
+
+            resend_row = db.execute(text("SELECT value FROM system_settings WHERE key = 'resend_config'")).fetchone()
+            if resend_row and resend_row[0]:
+                cfg = resend_row[0] if isinstance(resend_row[0], dict) else json.loads(resend_row[0])
+                if cfg.get("api_key"):
+                    self._resend_api_key = cfg["api_key"]
+                if cfg.get("from_email"):
+                    self._resend_from_email = cfg["from_email"]
+
+        except Exception as e:
+            logger.warning(f"Failed to load email config from DB, using .env fallback: {e}")
+
     def get_status(self) -> dict:
         """Return current email config status (for settings API)."""
         return {
             "provider": self.provider,
             "enabled": self.enabled,
-            "smtp_user": settings.SMTP_USER if self.provider == "smtp" else "",
-            "resend_configured": bool(settings.RESEND_API_KEY) if self.provider == "resend" else False,
+            "smtp_user": self._smtp_user if self.provider == "smtp" else "",
+            "resend_configured": bool(self._resend_api_key) if self.provider == "resend" else False,
         }
 
     def send_deadline_reminder(
@@ -134,14 +182,14 @@ class EmailService:
         try:
             msg = MIMEMultipart("alternative")
             msg["Subject"] = subject
-            msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+            msg["From"] = f"{self._smtp_from_name} <{self._smtp_user}>"
             msg["To"] = to_email
             msg.attach(MIMEText(html, "html", "utf-8"))
 
-            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+            with smtplib.SMTP(self._smtp_host, self._smtp_port) as server:
                 server.starttls()
-                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-                server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
+                server.login(self._smtp_user, self._smtp_password)
+                server.sendmail(self._smtp_user, to_email, msg.as_string())
 
             logger.info(f"[SMTP] Email sent to {to_email}: {subject}")
             return True
@@ -153,7 +201,7 @@ class EmailService:
         try:
             import resend
             resend.Emails.send({
-                "from": settings.RESEND_FROM_EMAIL,
+                "from": self._resend_from_email,
                 "to": [to_email],
                 "subject": subject,
                 "html": html,
