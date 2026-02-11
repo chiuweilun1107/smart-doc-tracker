@@ -17,6 +17,7 @@ class NotificationRuleBase(BaseModel):
     days_before: int
     severity: str = "info"
     is_active: bool = True
+    channels: list[str] = ["line", "email"]
 
 class NotificationRuleCreate(NotificationRuleBase):
     pass

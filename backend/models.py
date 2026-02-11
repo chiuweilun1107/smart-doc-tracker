@@ -1,6 +1,6 @@
 
 from sqlalchemy import Column, String, Integer, DateTime, Boolean, ForeignKey, Text, JSON
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from backend.core.database import Base
@@ -75,6 +75,7 @@ class NotificationRule(Base):
     days_before = Column(Integer, nullable=False) # e.g., 7, 3, 1, 0
     severity = Column(String, default="info") # info, warning, critical
     is_active = Column(Boolean, default=True)
+    channels = Column(JSONB, server_default='["line", "email"]', nullable=False)  # ["line"], ["email"], ["line", "email"]
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships

@@ -114,19 +114,24 @@ class NotificationService:
             NotificationRule.is_active == True,
         ).all()
 
-        should_notify = False
+        # Collect channels from matched rules
+        channels = set()
 
-        # Check rules
         for rule in rules:
             if days_left == rule.days_before:
-                should_notify = True
+                rule_channels = rule.channels if rule.channels else ["line", "email"]
+                channels.update(rule_channels)
                 break
 
-        # Overdue: notify daily
+        # Overdue: notify daily via all channels from any active rule
         if days_left < 0:
-            should_notify = True
+            for rule in rules:
+                rule_channels = rule.channels if rule.channels else ["line", "email"]
+                channels.update(rule_channels)
+            if not channels:
+                channels = {"line", "email"}  # Default if no rules exist
 
-        if not should_notify:
+        if not channels:
             return
 
         # Deduplicate: check if already notified today for this event+user
@@ -142,8 +147,8 @@ class NotificationService:
             logger.debug(f"Already notified {user.email} for event {event.id} today")
             return
 
-        # Send notifications
-        self._send_to_user(db, user, event, project, days_left)
+        # Send notifications via selected channels
+        self._send_to_user(db, user, event, project, days_left, channels)
 
     def _send_to_user(
         self,
@@ -152,8 +157,12 @@ class NotificationService:
         event: DeadlineEvent,
         project: Project,
         days_left: int,
+        channels: set[str] = None,
     ):
-        """Send LINE + Email notification to a user."""
+        """Send notifications to a user via specified channels."""
+        if channels is None:
+            channels = {"line", "email"}
+
         message_content = (
             f"事項：{event.title}\n"
             f"專案：{project.name}\n"
@@ -162,11 +171,11 @@ class NotificationService:
         )
 
         # 1. LINE notification
-        if user.line_user_id and settings.LINE_CHANNEL_ACCESS_TOKEN:
+        if "line" in channels and user.line_user_id and settings.LINE_CHANNEL_ACCESS_TOKEN:
             self._send_line(db, user, event, project, days_left, message_content)
 
         # 2. Email notification
-        if user.email:
+        if "email" in channels and user.email:
             self._send_email(db, user, event, project, days_left, message_content)
 
     def _send_line(
