@@ -22,11 +22,11 @@ export function StatCard({
     const getVariantStyles = () => {
         switch (variant) {
             case "destructive":
-                return "border-red-200 bg-red-50 text-red-900"
+                return "border-red-200 bg-red-50 text-red-900 dark:bg-red-950/30 dark:text-red-200 dark:border-red-900/50"
             case "warning":
-                return "border-amber-200 bg-amber-50 text-amber-900"
+                return "border-amber-200 bg-amber-50 text-amber-900 dark:bg-amber-950/30 dark:text-amber-200 dark:border-amber-900/50"
             default:
-                return "bg-white"
+                return "bg-card text-card-foreground"
         }
     }
 

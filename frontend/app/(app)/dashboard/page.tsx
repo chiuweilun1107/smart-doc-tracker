@@ -62,7 +62,7 @@ export default function DashboardPage() {
                     <LayoutDashboard className="mr-2" />
                     儀表板
                 </h1>
-                <p className="text-gray-500">歡迎回來，這是您的專案概況。</p>
+                <p className="text-muted-foreground">歡迎回來，這是您的專案概況。</p>
             </div>
 
             {/* Stats Row */}
@@ -71,25 +71,25 @@ export default function DashboardPage() {
                     title="逾期任務"
                     value={stats?.overdue_tasks || 0}
                     description="請盡快處理"
-                    icon={<AlertTriangle className="w-4 h-4 text-red-500" />}
+                    icon={<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />}
                     variant={stats?.overdue_tasks > 0 ? "destructive" : "default"}
                 />
                 <StatCard
                     title="即將到期"
                     value={stats?.upcoming_tasks || 0}
                     description="未來 7 天內"
-                    icon={<Clock className="w-4 h-4 text-amber-500" />}
+                    icon={<Clock className="w-4 h-4 text-amber-500 dark:text-amber-400" />}
                     variant={stats?.upcoming_tasks > 0 ? "warning" : "default"}
                 />
                 <StatCard
                     title="活躍專案"
                     value={stats?.total_projects || 0}
-                    icon={<LayoutDashboard className="w-4 h-4 text-blue-500" />}
+                    icon={<LayoutDashboard className="w-4 h-4 text-blue-500 dark:text-blue-400" />}
                 />
                 <StatCard
                     title="總文件數"
                     value={stats?.total_documents || 0}
-                    icon={<FileText className="w-4 h-4 text-slate-500" />}
+                    icon={<FileText className="w-4 h-4 text-slate-500 dark:text-slate-400" />}
                 />
             </div>
 

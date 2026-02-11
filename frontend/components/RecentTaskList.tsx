@@ -27,7 +27,7 @@ export function RecentTaskList({ tasks }: RecentTaskListProps) {
     const router = useRouter()
 
     if (tasks.length === 0) {
-        return <div className="text-center py-6 text-gray-500 text-sm">暫無近期任務</div>
+        return <div className="text-center py-6 text-muted-foreground text-sm">暫無近期任務</div>
     }
 
     const handleTaskClick = (task: Task) => {
@@ -43,7 +43,7 @@ export function RecentTaskList({ tasks }: RecentTaskListProps) {
     }
 
     return (
-        <div className="space-y-4">
+        <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2 scroll-smooth">
             {tasks.map((task) => {
                 const isOverdue = new Date(task.due_date) < new Date() && task.status !== "completed"
                 const projectName = task.documents?.projects?.name
@@ -53,22 +53,22 @@ export function RecentTaskList({ tasks }: RecentTaskListProps) {
                     <div
                         key={task.id}
                         onClick={() => handleTaskClick(task)}
-                        className={`flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm ${hasLink ? 'cursor-pointer hover:border-primary hover:shadow-md transition-all' : ''}`}
+                        className={`flex items-center justify-between p-4 border rounded-lg bg-card text-card-foreground shadow-sm ${hasLink ? 'cursor-pointer hover:border-primary hover:shadow-md transition-all' : ''}`}
                     >
                         <div className="flex items-start space-x-3 flex-1">
                             {task.status === "completed" || task.status === "confirmed" ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
+                                <CheckCircle2 className="w-5 h-5 text-green-500 dark:text-green-400 mt-0.5 flex-shrink-0" />
                             ) : isOverdue ? (
-                                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
+                                <AlertCircle className="w-5 h-5 text-red-500 dark:text-red-400 mt-0.5 flex-shrink-0" />
                             ) : (
-                                <Calendar className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                                <Calendar className="w-5 h-5 text-blue-500 dark:text-blue-400 mt-0.5 flex-shrink-0" />
                             )}
 
                             <div className="flex-1 min-w-0">
-                                <p className="font-medium text-sm text-gray-900">{task.title}</p>
-                                <div className="flex items-center text-xs text-gray-500 mt-1 gap-2">
+                                <p className="font-medium text-sm text-foreground">{task.title}</p>
+                                <div className="flex items-center text-xs text-muted-foreground mt-1 gap-2">
                                     {projectName && (
-                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
+                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-200 rounded font-medium">
                                             {projectName}
                                         </span>
                                     )}

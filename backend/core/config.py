@@ -11,7 +11,7 @@ load_dotenv(env_path)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Smart Doc Tracker API"
-    API_V1_STR: str = "/v1"
+    API_V1_STR: str = "/api/v1"
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
@@ -62,6 +62,8 @@ class Settings(BaseSettings):
         "http://localhost:3001",
         "http://127.0.0.1:3000",
         "http://127.0.0.1:3001",
+        "https://5-78-118-41.sslip.io",
+        "http://5.78.118.41:3000",
     ]
 
     class Config:

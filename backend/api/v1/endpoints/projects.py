@@ -33,7 +33,7 @@ def get_user_project_ids(user_id: str) -> list[str]:
     return all_ids
 
 
-@router.get("/", response_model=List[ProjectWithCounts])
+@router.get("", response_model=List[ProjectWithCounts])
 def read_projects(
     skip: int = 0,
     limit: int = 100,
@@ -106,7 +106,7 @@ def read_projects(
         print(f"Error fetching projects: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@router.post("/", response_model=Project)
+@router.post("", response_model=Project)
 def create_project(
     *,
     project_in: ProjectCreate,

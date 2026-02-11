@@ -145,21 +145,28 @@ def invite_member(
             if profile.data and len(profile.data) > 0:
                 result["full_name"] = profile.data[0].get("full_name")
 
-            # Send invitation email in background
+            # Send invitation email synchronously for immediate feedback
             project = _verify_project_owner(pid, uid)
             inviter_name = current_user.email.split("@")[0]
-            # Try to get inviter's full_name from profile
             inviter_profile = supabase.table("profiles").select("full_name").eq("id", uid).execute()
             if inviter_profile.data and inviter_profile.data[0].get("full_name"):
                 inviter_name = inviter_profile.data[0]["full_name"]
 
-            background_tasks.add_task(
-                EmailService().send_invitation,
-                to_email=email,
-                project_name=project["name"],
-                inviter_name=inviter_name,
-            )
+            from backend.core.database import get_db
+            db = next(get_db())
+            try:
+                email_service = EmailService(db=db)
+                is_existing = bool(profile.data and len(profile.data) > 0)
+                email_sent = email_service.send_invitation(
+                    to_email=email,
+                    project_name=project["name"],
+                    inviter_name=inviter_name,
+                    is_existing_user=is_existing,
+                )
+            finally:
+                db.close()
 
+            result["email_sent"] = email_sent
             return result
         else:
             raise HTTPException(status_code=500, detail="Failed to invite member")
@@ -170,6 +177,60 @@ def invite_member(
         if "uq_project_member" in str(e):
             raise HTTPException(status_code=400, detail="This email has already been invited")
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/{project_id}/members/{member_id}/resend-invite")
+def resend_invitation(
+    project_id: uuid.UUID,
+    member_id: uuid.UUID,
+    current_user=Depends(deps.get_current_user),
+):
+    """Resend invitation email to a pending member. Only the project owner can resend."""
+    if not supabase:
+        raise HTTPException(status_code=500, detail="Database connection error")
+
+    pid = str(project_id)
+    uid = str(current_user.id)
+
+    project = _verify_project_owner(pid, uid)
+
+    # Get the member
+    member = supabase.table("project_members") \
+        .select("*") \
+        .eq("id", str(member_id)) \
+        .eq("project_id", pid) \
+        .single() \
+        .execute()
+
+    if not member.data:
+        raise HTTPException(status_code=404, detail="Member not found")
+
+    if member.data["status"] != "pending":
+        raise HTTPException(status_code=400, detail="此成員已接受邀請，無需重寄")
+
+    # Get inviter name
+    inviter_name = current_user.email.split("@")[0]
+    inviter_profile = supabase.table("profiles").select("full_name").eq("id", uid).execute()
+    if inviter_profile.data and inviter_profile.data[0].get("full_name"):
+        inviter_name = inviter_profile.data[0]["full_name"]
+
+    # Send email synchronously for immediate feedback
+    from backend.core.database import get_db
+    db = next(get_db())
+    try:
+        email_service = EmailService(db=db)
+        success = email_service.send_invitation(
+            to_email=member.data["email"],
+            project_name=project["name"],
+            inviter_name=inviter_name,
+        )
+    finally:
+        db.close()
+
+    if success:
+        return {"status": "sent", "email": member.data["email"]}
+    else:
+        raise HTTPException(status_code=500, detail="郵件發送失敗，請檢查 Email 設定")
 
 
 @router.delete("/{project_id}/members/{member_id}", status_code=status.HTTP_204_NO_CONTENT)

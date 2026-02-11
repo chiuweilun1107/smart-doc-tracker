@@ -103,7 +103,7 @@ def get_dashboard_stats(
             .in_("document_id", doc_ids)\
             .neq("status", "completed")\
             .order("due_date", desc=False)\
-            .limit(5)\
+            .limit(50)\
             .execute()
         recent_events = recent_response.data if recent_response.data else []
 

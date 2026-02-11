@@ -142,16 +142,32 @@ class EmailService:
         to_email: str,
         project_name: str,
         inviter_name: str,
+        is_existing_user: bool = False,
+        app_url: str = "https://5-78-118-41.sslip.io",
     ) -> bool:
         if not self.enabled:
             logger.info(f"[Email SKIP] {self.provider} not configured. Would send invitation to {to_email}")
             return False
 
         subject = f"{inviter_name} 邀請你加入專案「{project_name}」"
+
+        if is_existing_user:
+            # Already registered — direct login link
+            action_url = f"{app_url}/login"
+            action_text = "登入查看專案"
+            status_text = "你已被自動加入此專案，登入即可查看。"
+            note_text = ""
+        else:
+            # Not registered — signup link
+            action_url = f"{app_url}/signup"
+            action_text = "立即註冊加入"
+            status_text = "加入後即可查看此專案的文件和截止日期，並接收到期提醒通知。"
+            note_text = f'<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" /><p style="font-size: 12px; color: #9ca3af; margin: 0;">請使用此信箱（{to_email}）註冊，系統會自動將你加入專案。</p>'
+
         html = f"""
         <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 480px; margin: 0 auto; padding: 24px;">
             <div style="background: #3b82f6; color: white; padding: 16px 20px; border-radius: 8px 8px 0 0;">
-                <h2 style="margin: 0; font-size: 16px;">專案邀請</h2>
+                <h2 style="margin: 0; font-size: 16px;">📋 專案邀請</h2>
             </div>
             <div style="border: 1px solid #e5e7eb; border-top: none; padding: 20px; border-radius: 0 0 8px 8px;">
                 <p style="font-size: 15px; color: #374151; margin: 0 0 12px 0;">
@@ -160,9 +176,15 @@ class EmailService:
                 <div style="background: #f3f4f6; border-radius: 6px; padding: 12px 16px; margin: 12px 0;">
                     <p style="margin: 0; font-size: 16px; font-weight: 600; color: #111827;">{project_name}</p>
                 </div>
-                <p style="font-size: 14px; color: #6b7280; margin: 16px 0 0 0;">
-                    登入 Smart Doc Tracker 即可查看此專案的文件和截止日期。
+                <p style="font-size: 14px; color: #6b7280; margin: 16px 0 16px 0;">
+                    {status_text}
                 </p>
+                <div style="text-align: center; margin: 20px 0;">
+                    <a href="{action_url}" style="display: inline-block; background: #3b82f6; color: white; padding: 12px 32px; border-radius: 6px; text-decoration: none; font-size: 15px; font-weight: 600;">
+                        {action_text}
+                    </a>
+                </div>
+                {note_text}
             </div>
             <p style="text-align: center; margin-top: 16px; font-size: 12px; color: #9ca3af;">
                 Smart Doc Tracker — 智能文件期限追蹤系統

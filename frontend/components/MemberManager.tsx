@@ -15,7 +15,7 @@ import {
     DialogTrigger,
 } from "@/components/ui/dialog"
 import { toast } from "@/lib/toast"
-import { UserPlus, X, Mail, Loader2, Users } from "lucide-react"
+import { UserPlus, X, Mail, Loader2, Users, Send } from "lucide-react"
 
 interface Member {
     id: string
@@ -39,6 +39,7 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
     const [loading, setLoading] = useState(true)
     const [inviteEmail, setInviteEmail] = useState("")
     const [inviting, setInviting] = useState(false)
+    const [resendingId, setResendingId] = useState<string | null>(null)
     const [dialogOpen, setDialogOpen] = useState(false)
 
     useEffect(() => {
@@ -62,10 +63,15 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
 
         setInviting(true)
         try {
-            await apiClient.post(`/projects/${projectId}/members/invite`, {
+            const res = await apiClient.post(`/projects/${projectId}/members/invite`, {
                 email: inviteEmail.trim(),
             })
-            toast("成員邀請已發送", "success")
+            const emailSent = res.data?.email_sent
+            if (emailSent) {
+                toast(`邀請已發送，通知信已寄至 ${inviteEmail.trim()}`, "success")
+            } else {
+                toast("成員已新增，但通知信發送失敗（請檢查 Email 設定或手動重寄）", "error")
+            }
             setInviteEmail("")
             setDialogOpen(false)
             fetchMembers()
@@ -74,6 +80,19 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
             toast(detail, "error")
         } finally {
             setInviting(false)
+        }
+    }
+
+    const handleResend = async (memberId: string, email: string) => {
+        setResendingId(memberId)
+        try {
+            await apiClient.post(`/projects/${projectId}/members/${memberId}/resend-invite`)
+            toast(`邀請信已重新寄送至 ${email}`, "success")
+        } catch (error: any) {
+            const detail = error.response?.data?.detail || "重寄失敗"
+            toast(detail, "error")
+        } finally {
+            setResendingId(null)
         }
     }
 
@@ -111,7 +130,7 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
                             <DialogHeader>
                                 <DialogTitle>邀請成員</DialogTitle>
                                 <DialogDescription>
-                                    輸入成員的 Email 地址來邀請他們加入此專案。
+                                    輸入成員的 Email 地址來邀請他們加入此專案。系統會自動發送邀請通知信。
                                 </DialogDescription>
                             </DialogHeader>
                             <form onSubmit={handleInvite}>
@@ -180,13 +199,27 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
                                     )}
                                 </div>
                             </div>
-                            <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="flex items-center gap-1.5 flex-shrink-0">
                                 <Badge
                                     variant={member.status === "accepted" ? "default" : "secondary"}
                                     className="text-xs"
                                 >
                                     {member.status === "accepted" ? "已加入" : "待接受"}
                                 </Badge>
+                                {isOwner && member.status === "pending" && (
+                                    <button
+                                        onClick={() => handleResend(member.id, member.email)}
+                                        disabled={resendingId === member.id}
+                                        className="text-gray-400 hover:text-blue-500 transition-colors p-1 disabled:opacity-50"
+                                        title="重寄邀請信"
+                                    >
+                                        {resendingId === member.id ? (
+                                            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Send className="w-3.5 h-3.5" />
+                                        )}
+                                    </button>
+                                )}
                                 {isOwner && (
                                     <button
                                         onClick={() => handleRemove(member.id, member.email)}
