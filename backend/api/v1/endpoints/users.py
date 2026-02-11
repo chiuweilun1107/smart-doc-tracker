@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from typing import List
 from uuid import UUID
 from pydantic import BaseModel
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import random
 
 from backend.core.database import get_db
@@ -45,7 +45,7 @@ def get_line_binding_status(
 
         # Return active verification code if exists and not expired
         if profile.line_verification_code and profile.line_verification_expires_at:
-            if profile.line_verification_expires_at > datetime.now():
+            if profile.line_verification_expires_at > datetime.now(timezone.utc):
                 verification_code = profile.line_verification_code
 
     return {
@@ -82,7 +82,7 @@ def generate_line_verification_code(
     verification_code = f"{random.randint(0, 999999):06d}"
 
     # Set expiration (15 minutes from now)
-    expires_at = datetime.now() + timedelta(minutes=15)
+    expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)
 
     # Update profile
     profile.line_verification_code = verification_code

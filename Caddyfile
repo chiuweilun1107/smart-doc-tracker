@@ -1,0 +1,11 @@
+5-78-118-41.sslip.io {
+	# API requests → backend
+	handle /api/* {
+		reverse_proxy sdt-backend:8000
+	}
+
+	# Everything else → frontend
+	handle {
+		reverse_proxy sdt-frontend:3000
+	}
+}

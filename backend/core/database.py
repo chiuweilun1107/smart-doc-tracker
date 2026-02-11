@@ -13,7 +13,14 @@ Base = declarative_base()
 # However, Alembic needs a real SQL connection.
 # Connection string must be sync: postgresql://... (not postgresql+asyncpg://)
 
-engine = create_engine(settings.DATABASE_URL.replace("+asyncpg", ""))
+engine = create_engine(
+    settings.DATABASE_URL.replace("+asyncpg", ""),
+    pool_pre_ping=True,
+    pool_recycle=300,
+    pool_size=5,
+    max_overflow=10,
+    connect_args={"connect_timeout": 10},
+)
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 

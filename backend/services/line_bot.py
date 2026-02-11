@@ -5,7 +5,7 @@ from linebot import LineBotApi
 from linebot.models import TextSendMessage
 from backend.core.config import settings
 from backend.models import Profile, DeadlineEvent, Document, Project
-from datetime import datetime
+from datetime import datetime, timezone
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -70,7 +70,7 @@ class LineBotService:
             if user_profile:
                 # Check if code is expired
                 if user_profile.line_verification_expires_at and \
-                   user_profile.line_verification_expires_at > datetime.now():
+                   user_profile.line_verification_expires_at > datetime.now(timezone.utc):
                     # Valid code - bind account
                     user_profile.line_user_id = line_user_id
                     user_profile.line_verification_code = None  # Clear used code

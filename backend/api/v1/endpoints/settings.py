@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from uuid import UUID
 
 from backend.core.database import get_db
+from backend.core.config import settings
 from backend.models import NotificationRule, NotificationLog, Profile
 from backend.core import deps
 
@@ -35,6 +36,19 @@ class EmailConfigUpdate(BaseModel):
     provider: str  # "smtp" or "resend"
     smtp: Optional[SmtpConfig] = None
     resend: Optional[ResendConfig] = None
+
+
+# ─── LINE Config Models ───
+class LineConfigResponse(BaseModel):
+    bot_id: str = ""
+    bot_name: str = ""
+    channel_secret: str = ""
+    channel_access_token: str = ""
+
+class LineConfigUpdate(BaseModel):
+    channel_secret: str = ""
+    channel_access_token: str = ""
+
 
 # Pydantic Models
 class NotificationRuleBase(BaseModel):
@@ -228,6 +242,115 @@ def send_test_email(
     if success:
         return {"status": "sent", "to": recipient}
     raise HTTPException(status_code=500, detail="Failed to send test email")
+
+@router.get("/line-config", response_model=LineConfigResponse)
+def get_line_config(
+    current_user = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Get current LINE bot configuration."""
+    row = db.execute(text("SELECT value FROM system_settings WHERE key = 'line_config'")).fetchone()
+    cfg = row[0] if row and row[0] else {}
+
+    # Mask secrets
+    display = dict(cfg)
+    if display.get("channel_secret"):
+        display["channel_secret"] = display["channel_secret"][:8] + "••••••••"
+    if display.get("channel_access_token"):
+        display["channel_access_token"] = display["channel_access_token"][:12] + "••••••••"
+
+    return LineConfigResponse(**display)
+
+
+@router.put("/line-config")
+def update_line_config(
+    config: LineConfigUpdate,
+    current_user = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Update LINE bot configuration. Auto-detects bot ID and name from LINE API."""
+    import urllib.request
+
+    # If secrets are masked, keep old values
+    secret = config.channel_secret
+    token = config.channel_access_token
+    old_row = db.execute(text("SELECT value FROM system_settings WHERE key = 'line_config'")).fetchone()
+    old_cfg = old_row[0] if old_row and old_row[0] else {}
+
+    if secret.endswith("••••••••"):
+        secret = old_cfg.get("channel_secret", "")
+    if token.endswith("••••••••"):
+        token = old_cfg.get("channel_access_token", "")
+
+    if not token:
+        raise HTTPException(status_code=400, detail="Channel Access Token is required")
+
+    # Auto-detect bot ID and name from LINE API
+    bot_id = ""
+    bot_name = ""
+    try:
+        req = urllib.request.Request(
+            "https://api.line.me/v2/bot/info",
+            headers={"Authorization": f"Bearer {token}"}
+        )
+        resp = urllib.request.urlopen(req, timeout=10)
+        import json as json_module
+        data = json_module.loads(resp.read())
+        bot_id = data.get("basicId", "")
+        bot_name = data.get("displayName", "")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"無法驗證 LINE Token，請確認 Channel Access Token 是否正確: {e}")
+
+    line_cfg = {
+        "bot_id": bot_id,
+        "bot_name": bot_name,
+        "channel_secret": secret,
+        "channel_access_token": token,
+    }
+
+    db.execute(text("""
+        INSERT INTO system_settings (key, value, updated_at)
+        VALUES ('line_config', :val::jsonb, now())
+        ON CONFLICT (key) DO UPDATE SET value = :val::jsonb, updated_at = now()
+    """), {"val": json.dumps(line_cfg)})
+    db.commit()
+
+    return {"status": "success", "bot_id": bot_id, "bot_name": bot_name}
+
+
+@router.post("/line-test")
+def send_test_line_message(
+    current_user = Depends(deps.get_current_user),
+    db: Session = Depends(get_db),
+):
+    """Send a test LINE message to the current user."""
+    from linebot import LineBotApi
+    from linebot.models import TextSendMessage
+
+    # Get user's line_user_id
+    profile = db.query(Profile).filter(Profile.id == str(current_user.id)).first()
+    if not profile or not profile.line_user_id:
+        raise HTTPException(status_code=400, detail="您尚未綁定 LINE 帳號，請先完成綁定。")
+
+    # Get LINE config from DB, fallback to .env
+    token = settings.LINE_CHANNEL_ACCESS_TOKEN
+    row = db.execute(text("SELECT value FROM system_settings WHERE key = 'line_config'")).fetchone()
+    if row and row[0] and row[0].get("channel_access_token"):
+        token = row[0]["channel_access_token"]
+
+    if not token:
+        raise HTTPException(status_code=400, detail="LINE Bot 尚未設定 Channel Access Token")
+
+    try:
+        line_bot_api = LineBotApi(token)
+        line_bot_api.push_message(
+            profile.line_user_id,
+            TextSendMessage(text="✅ 這是一則測試訊息\n\nSmart Doc Tracker 的 LINE 通知功能正常運作中！\n截止日提醒和專案通知會透過此機器人發送給您。")
+        )
+        return {"status": "sent", "to": profile.line_user_id[:10] + "..."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"LINE 訊息發送失敗: {e}")
+
 
 @router.get("/notification-logs", response_model=List[NotificationLogResponse])
 def get_notification_logs(
