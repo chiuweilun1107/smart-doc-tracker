@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from uuid import UUID
+from datetime import datetime
 
 
 class CurrentUser(BaseModel):
@@ -10,8 +11,8 @@ class CurrentUser(BaseModel):
     id: UUID | str
     email: str
     phone: str | None = None
-    email_confirmed_at: str | None = None
-    created_at: str | None = None
+    email_confirmed_at: datetime | None = None
+    created_at: datetime | None = None
 
     class Config:
         # Allow both Supabase User objects and dicts

@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from backend.api.v1.api import api_router
 from backend.core.config import settings
+from backend.core.cache import cache
 from backend.services.notification import NotificationService
 
 # Initialize Scheduler
@@ -13,6 +14,12 @@ notification_service = NotificationService()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Startup
+    # Test Redis connection
+    if cache.health_check():
+        print("✅ Redis cache is ready!")
+    else:
+        print("⚠️  Redis cache is not available - caching disabled")
+
     # Schedule deadline check daily at 09:00
     scheduler.add_job(notification_service.check_deadlines, 'cron', hour=9, minute=0)
     # For testing: run every minute? No.
@@ -47,4 +54,9 @@ def read_root():
 
 @app.get("/health")
 def health_check():
-    return {"status": "ok"}
+    redis_status = "connected" if cache.health_check() else "disconnected"
+    return {
+        "status": "ok",
+        "redis": redis_status,
+        "cache_enabled": cache.client is not None
+    }

@@ -1,13 +1,22 @@
 
 import { Badge } from "@/components/ui/badge"
-import { Calendar, AlertCircle, CheckCircle2 } from "lucide-react"
+import { Calendar, AlertCircle, CheckCircle2, ExternalLink } from "lucide-react"
+import { useRouter } from "next/navigation"
 
 interface Task {
     id: string
     title: string
     due_date: string
     status: string
-    project_name?: string // Optional if joined
+    document_id?: string
+    documents?: {
+        original_filename?: string
+        project_id?: string
+        projects?: {
+            id: string
+            name: string
+        }
+    }
 }
 
 interface RecentTaskListProps {
@@ -15,40 +24,69 @@ interface RecentTaskListProps {
 }
 
 export function RecentTaskList({ tasks }: RecentTaskListProps) {
+    const router = useRouter()
+
     if (tasks.length === 0) {
         return <div className="text-center py-6 text-gray-500 text-sm">暫無近期任務</div>
+    }
+
+    const handleTaskClick = (task: Task) => {
+        // Extract project_id and document_id from nested structure
+        const projectId = task.documents?.projects?.id || task.documents?.project_id
+        const documentId = task.document_id
+
+        if (projectId && documentId) {
+            router.push(`/projects/${projectId}?document=${documentId}`)
+        } else if (projectId) {
+            router.push(`/projects/${projectId}`)
+        }
     }
 
     return (
         <div className="space-y-4">
             {tasks.map((task) => {
                 const isOverdue = new Date(task.due_date) < new Date() && task.status !== "completed"
+                const projectName = task.documents?.projects?.name
+                const hasLink = task.documents?.projects?.id || task.documents?.project_id
 
                 return (
-                    <div key={task.id} className="flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm">
-                        <div className="flex items-start space-x-3">
-                            {task.status === "completed" ? (
-                                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5" />
+                    <div
+                        key={task.id}
+                        onClick={() => handleTaskClick(task)}
+                        className={`flex items-center justify-between p-4 border rounded-lg bg-white shadow-sm ${hasLink ? 'cursor-pointer hover:border-primary hover:shadow-md transition-all' : ''}`}
+                    >
+                        <div className="flex items-start space-x-3 flex-1">
+                            {task.status === "completed" || task.status === "confirmed" ? (
+                                <CheckCircle2 className="w-5 h-5 text-green-500 mt-0.5 flex-shrink-0" />
                             ) : isOverdue ? (
-                                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5" />
+                                <AlertCircle className="w-5 h-5 text-red-500 mt-0.5 flex-shrink-0" />
                             ) : (
-                                <Calendar className="w-5 h-5 text-blue-500 mt-0.5" />
+                                <Calendar className="w-5 h-5 text-blue-500 mt-0.5 flex-shrink-0" />
                             )}
 
-                            <div>
+                            <div className="flex-1 min-w-0">
                                 <p className="font-medium text-sm text-gray-900">{task.title}</p>
-                                <div className="flex items-center text-xs text-gray-500 mt-1">
-                                    {task.project_name && <span className="mr-2 px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">{task.project_name}</span>}
-                                    <span>{new Date(task.due_date).toLocaleDateString()}</span>
+                                <div className="flex items-center text-xs text-gray-500 mt-1 gap-2">
+                                    {projectName && (
+                                        <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded font-medium">
+                                            {projectName}
+                                        </span>
+                                    )}
+                                    <span>{new Date(task.due_date).toLocaleDateString('zh-TW')}</span>
                                 </div>
                             </div>
                         </div>
 
-                        <div>
-                            {isOverdue ? (
+                        <div className="flex items-center gap-2">
+                            {task.status === "confirmed" ? (
+                                <Badge variant="default" className="bg-green-600">confirmed</Badge>
+                            ) : isOverdue ? (
                                 <Badge variant="destructive">已逾期</Badge>
                             ) : (
                                 <Badge variant="outline">{task.status === "pending" ? "進行中" : task.status}</Badge>
+                            )}
+                            {hasLink && (
+                                <ExternalLink className="w-4 h-4 text-gray-400" />
                             )}
                         </div>
                     </div>

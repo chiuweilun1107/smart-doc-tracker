@@ -6,6 +6,7 @@ from sqlalchemy import func
 from backend.core import deps
 from backend.core.config import settings
 from backend.core.database import get_db
+from backend.core.cache import cache
 from backend.models import Project, Document, DeadlineEvent
 # Import NotificationService for manual trigger
 from backend.services.notification import NotificationService
@@ -20,12 +21,19 @@ def get_dashboard_stats(
 ):
     """
     Get aggregated statistics for dashboard.
+    Cached for 60 seconds to improve performance.
     """
     if not supabase:
         raise HTTPException(status_code=500, detail="Database connection error")
-        
+
     try:
         user_id = str(current_user.id)
+
+        # Try to get from cache first
+        cache_key = f"dashboard:stats:{user_id}"
+        cached_data = cache.get(cache_key)
+        if cached_data:
+            return cached_data
 
         today = datetime.now().date().isoformat()
 
@@ -45,13 +53,15 @@ def get_dashboard_stats(
         recent_events = []
 
         if not project_ids:
-            return {
+            result = {
                 "total_projects": projects_count,
                 "total_documents": 0,
                 "overdue_tasks": 0,
                 "upcoming_tasks": 0,
                 "recent_events": []
             }
+            cache.set(cache_key, result, ttl=60)
+            return result
 
         # 2. Get documents count
         docs_response = supabase.table("documents")\
@@ -62,13 +72,15 @@ def get_dashboard_stats(
         doc_ids = [d['id'] for d in docs_response.data] if docs_response.data else []
 
         if not doc_ids:
-            return {
+            result = {
                 "total_projects": projects_count,
                 "total_documents": doc_count,
                 "overdue_tasks": 0,
                 "upcoming_tasks": 0,
                 "recent_events": []
             }
+            cache.set(cache_key, result, ttl=60)
+            return result
 
         # 3. Get all event counts and recent events in fewer queries
         # Count overdue
@@ -89,23 +101,28 @@ def get_dashboard_stats(
             .execute()
         upcoming_count = upcoming.count if upcoming.count is not None else 0
 
-        # Get recent events with document join (optimized with specific fields)
+        # Get recent events with document and project join (optimized with specific fields)
         recent_response = supabase.table("deadline_events")\
-            .select("id, title, due_date, status, confidence_score, documents(filename, project_id)")\
+            .select("id, title, due_date, status, confidence_score, document_id, documents(original_filename, project_id, projects(id, name))")\
             .in_("document_id", doc_ids)\
             .neq("status", "completed")\
             .order("due_date", desc=False)\
             .limit(5)\
             .execute()
         recent_events = recent_response.data if recent_response.data else []
-        
-        return {
+
+        result = {
             "total_projects": projects_count,
             "total_documents": doc_count,
             "overdue_tasks": overdue_count,
             "upcoming_tasks": upcoming_count,
             "recent_events": recent_events
         }
+
+        # Cache the result for 60 seconds
+        cache.set(cache_key, result, ttl=60)
+
+        return result
 
     except HTTPException:
         raise

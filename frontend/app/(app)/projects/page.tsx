@@ -53,10 +53,10 @@ export default function ProjectsPage() {
                                 id={project.id}
                                 name={project.name}
                                 description={project.description}
-                                // status, docCount, eventCount missing from API response for now
-                                // API returns simple fields. We can update backend later to include counts or mock them.
-                                docCount={0}
-                                eventCount={0}
+                                docCount={project.doc_count ?? 0}
+                                eventCount={project.event_count ?? 0}
+                                createdAt={project.created_at}
+                                onProjectChanged={fetchProjects}
                             />
                         ))
                     )}

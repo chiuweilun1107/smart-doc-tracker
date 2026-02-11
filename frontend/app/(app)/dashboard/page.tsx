@@ -2,12 +2,14 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
 import { StatCard } from "@/components/StatCard"
 import { RecentTaskList } from "@/components/RecentTaskList"
 import { AlertTriangle, Clock, FileText, LayoutDashboard } from "lucide-react"
 
 export default function DashboardPage() {
+    const router = useRouter()
     const [stats, setStats] = useState<any>(null)
     const [loading, setLoading] = useState(true)
 
@@ -17,27 +19,26 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         try {
-            // Mock data in case backend is slow or failing (for robust UI dev)
-            // Remove this when API is fully verified
-            /*
-            setStats({
-                total_projects: 12,
-                total_documents: 45,
-                overdue_tasks: 3,
-                upcoming_tasks: 5,
-                recent_events: [
-                    { id: "1", title: "第一期款支付", due_date: "2024-02-01", status: "pending", project_name: "信義案" },
-                    { id: "2", title: "期中報告提交", due_date: "2024-02-15", status: "pending", project_name: "行銷案" },
-                ]
-            })
-            setLoading(false)
-            */
-
+            console.log('📊 Fetching dashboard stats...')
             const res = await apiClient.get('/dashboard/stats')
+            console.log('✅ Dashboard stats loaded:', res.data)
             setStats(res.data)
-        } catch (error) {
-            console.error("Failed to fetch dashboard stats", error)
-            // Fallback for demo if API fails (e.g. no data yet)
+        } catch (error: any) {
+            console.error("❌ Failed to fetch dashboard stats:", error)
+
+            // If 401, user needs to login - let middleware handle it or redirect manually
+            if (error.response?.status === 401) {
+                console.warn('🔒 Not authenticated, clearing session and redirecting to login...')
+                // Clear any stale session data
+                localStorage.clear()
+                sessionStorage.clear()
+                // Redirect immediately
+                router.push('/login')
+                return
+            }
+
+            // For other errors, show fallback data
+            console.log('📝 Using fallback data (empty stats)')
             setStats({
                 total_projects: 0,
                 total_documents: 0,

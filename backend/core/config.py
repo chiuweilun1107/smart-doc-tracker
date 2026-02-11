@@ -35,6 +35,13 @@ class Settings(BaseSettings):
     LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "")
 
+    # Redis Settings
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_DB: int = int(os.getenv("REDIS_DB", "0"))
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
+    CACHE_TTL: int = int(os.getenv("CACHE_TTL", "300"))  # Default 5 minutes
+
     # CORS Settings
     CORS_ORIGINS: list[str] = [
         "http://localhost:3000",
