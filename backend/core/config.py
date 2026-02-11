@@ -35,9 +35,19 @@ class Settings(BaseSettings):
     LINE_CHANNEL_ACCESS_TOKEN: str = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     LINE_CHANNEL_SECRET: str = os.getenv("LINE_CHANNEL_SECRET", "")
 
-    # Resend (Email)
+    # Email — supports "smtp" (Gmail) or "resend"
+    EMAIL_PROVIDER: str = os.getenv("EMAIL_PROVIDER", "smtp")  # "smtp" or "resend"
+
+    # SMTP (Gmail)
+    SMTP_HOST: str = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    SMTP_PORT: int = int(os.getenv("SMTP_PORT", "587"))
+    SMTP_USER: str = os.getenv("SMTP_USER", "")
+    SMTP_PASSWORD: str = os.getenv("SMTP_PASSWORD", "")  # Gmail App Password
+    SMTP_FROM_NAME: str = os.getenv("SMTP_FROM_NAME", "Smart Doc Tracker")
+
+    # Resend (alternative)
     RESEND_API_KEY: str = os.getenv("RESEND_API_KEY", "")
-    RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "Smart Doc Tracker <noreply@yourdomain.com>")
+    RESEND_FROM_EMAIL: str = os.getenv("RESEND_FROM_EMAIL", "")
 
     # Redis Settings
     REDIS_HOST: str = os.getenv("REDIS_HOST", "localhost")

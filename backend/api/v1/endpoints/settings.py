@@ -85,6 +85,36 @@ def delete_notification_rule(
     db.commit()
     return {"status": "success", "message": "Rule deleted"}
 
+@router.get("/email-status")
+def get_email_status(
+    current_user = Depends(deps.get_current_user),
+):
+    """Check current email service configuration status."""
+    from backend.services.email import EmailService
+    service = EmailService()
+    return service.get_status()
+
+@router.post("/email-test")
+def send_test_email(
+    current_user = Depends(deps.get_current_user),
+):
+    """Send a test email to the current user."""
+    from backend.services.email import EmailService
+    service = EmailService()
+    if not service.enabled:
+        raise HTTPException(status_code=400, detail="Email service not configured")
+
+    success = service.send_deadline_reminder(
+        to_email=current_user.email,
+        project_name="測試專案",
+        task_title="這是一封測試郵件",
+        due_date="2026-02-18",
+        days_left=7,
+    )
+    if success:
+        return {"status": "sent", "to": current_user.email}
+    raise HTTPException(status_code=500, detail="Failed to send test email")
+
 @router.get("/notification-logs", response_model=List[NotificationLogResponse])
 def get_notification_logs(
     skip: int = 0,

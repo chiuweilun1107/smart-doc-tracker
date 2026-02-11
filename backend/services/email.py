@@ -1,4 +1,7 @@
 import logging
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from backend.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -6,12 +9,31 @@ logger = logging.getLogger(__name__)
 
 class EmailService:
     def __init__(self):
-        self.enabled = bool(settings.RESEND_API_KEY)
-        if self.enabled:
-            import resend
-            resend.api_key = settings.RESEND_API_KEY
+        self.provider = settings.EMAIL_PROVIDER  # "smtp" or "resend"
+
+        if self.provider == "smtp":
+            self.enabled = bool(settings.SMTP_USER and settings.SMTP_PASSWORD)
+            if not self.enabled:
+                logger.warning("SMTP credentials not configured — email disabled")
+        elif self.provider == "resend":
+            self.enabled = bool(settings.RESEND_API_KEY)
+            if self.enabled:
+                import resend
+                resend.api_key = settings.RESEND_API_KEY
+            else:
+                logger.warning("Resend API key not configured — email disabled")
         else:
-            logger.warning("Resend API key not configured — email notifications disabled")
+            self.enabled = False
+            logger.warning(f"Unknown EMAIL_PROVIDER: {self.provider}")
+
+    def get_status(self) -> dict:
+        """Return current email config status (for settings API)."""
+        return {
+            "provider": self.provider,
+            "enabled": self.enabled,
+            "smtp_user": settings.SMTP_USER if self.provider == "smtp" else "",
+            "resend_configured": bool(settings.RESEND_API_KEY) if self.provider == "resend" else False,
+        }
 
     def send_deadline_reminder(
         self,
@@ -22,9 +44,8 @@ class EmailService:
         days_left: int,
         project_id: str = "",
     ) -> bool:
-        """Send a deadline reminder email."""
         if not self.enabled:
-            logger.info(f"[Email SKIP] No API key. Would send to {to_email}: {task_title}")
+            logger.info(f"[Email SKIP] {self.provider} not configured. Would send to {to_email}: {task_title}")
             return False
 
         if days_left > 0:
@@ -66,7 +87,6 @@ class EmailService:
             </p>
         </div>
         """
-
         return self._send(to_email, subject, html)
 
     def send_invitation(
@@ -75,9 +95,8 @@ class EmailService:
         project_name: str,
         inviter_name: str,
     ) -> bool:
-        """Send a project invitation email."""
         if not self.enabled:
-            logger.info(f"[Email SKIP] No API key. Would send invitation to {to_email}")
+            logger.info(f"[Email SKIP] {self.provider} not configured. Would send invitation to {to_email}")
             return False
 
         subject = f"{inviter_name} 邀請你加入專案「{project_name}」"
@@ -102,22 +121,45 @@ class EmailService:
             </p>
         </div>
         """
-
         return self._send(to_email, subject, html)
 
     def _send(self, to_email: str, subject: str, html: str) -> bool:
-        """Send email via Resend API."""
+        if self.provider == "smtp":
+            return self._send_smtp(to_email, subject, html)
+        elif self.provider == "resend":
+            return self._send_resend(to_email, subject, html)
+        return False
+
+    def _send_smtp(self, to_email: str, subject: str, html: str) -> bool:
+        try:
+            msg = MIMEMultipart("alternative")
+            msg["Subject"] = subject
+            msg["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_USER}>"
+            msg["To"] = to_email
+            msg.attach(MIMEText(html, "html", "utf-8"))
+
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT) as server:
+                server.starttls()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
+
+            logger.info(f"[SMTP] Email sent to {to_email}: {subject}")
+            return True
+        except Exception as e:
+            logger.error(f"[SMTP] Failed to send to {to_email}: {e}")
+            return False
+
+    def _send_resend(self, to_email: str, subject: str, html: str) -> bool:
         try:
             import resend
-
             resend.Emails.send({
                 "from": settings.RESEND_FROM_EMAIL,
                 "to": [to_email],
                 "subject": subject,
                 "html": html,
             })
-            logger.info(f"Email sent to {to_email}: {subject}")
+            logger.info(f"[Resend] Email sent to {to_email}: {subject}")
             return True
         except Exception as e:
-            logger.error(f"Failed to send email to {to_email}: {e}")
+            logger.error(f"[Resend] Failed to send to {to_email}: {e}")
             return False

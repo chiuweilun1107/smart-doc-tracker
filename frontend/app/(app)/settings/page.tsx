@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { Settings, ChevronLeft } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { LineBindingCard } from "@/components/LineBindingCard"
+import { EmailSettingsCard } from "@/components/EmailSettingsCard"
 import { NotificationRulesCard } from "@/components/NotificationRulesCard"
 
 export default function SettingsPage() {
@@ -28,6 +29,7 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                 <div className="space-y-8">
                     <LineBindingCard />
+                    <EmailSettingsCard />
                 </div>
                 <div className="space-y-8">
                     <NotificationRulesCard />
