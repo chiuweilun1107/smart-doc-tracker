@@ -4,9 +4,11 @@
 import { useState, useEffect, useRef } from "react"
 import { useParams, useSearchParams } from "next/navigation"
 import { apiClient } from "@/lib/api"
+import { supabase } from "@/lib/supabase"
 import { DocumentUploader } from "@/components/DocumentUploader"
 import { DocumentCard } from "@/components/DocumentCard"
 import { EventEditor } from "@/components/EventEditor"
+import { MemberManager } from "@/components/MemberManager"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Loader2, ArrowLeft, FileText, ChevronDown, ChevronRight } from "lucide-react"
 import Link from "next/link"
@@ -27,6 +29,15 @@ export default function ProjectDetailPage() {
     const [isDocListExpanded, setIsDocListExpanded] = useState(false)
     const docListRef = useRef<HTMLDivElement>(null)
     const [hasAutoSelected, setHasAutoSelected] = useState(false)
+    const [currentUserId, setCurrentUserId] = useState<string | null>(null)
+
+    useEffect(() => {
+        supabase.auth.getSession().then(({ data: { session } }) => {
+            setCurrentUserId(session?.user?.id || null)
+        })
+    }, [])
+
+    const isOwner = project && currentUserId ? project.owner_id === currentUserId : false
 
     useEffect(() => {
         if (id) {
@@ -268,6 +279,11 @@ export default function ProjectDetailPage() {
                             )}
                         </div>
                     )}
+
+                    {/* Member Management */}
+                    <div className="border border-gray-200 rounded-lg bg-white p-4">
+                        <MemberManager projectId={id} isOwner={isOwner} />
+                    </div>
 
                     {activeDoc && (
                         <div className="flex-1 border rounded-lg bg-white shadow-sm flex flex-col min-h-[400px] max-h-[600px]">

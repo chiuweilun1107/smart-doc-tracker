@@ -10,6 +10,7 @@ from backend.core.cache import cache
 from backend.models import Project, Document, DeadlineEvent
 # Import NotificationService for manual trigger
 from backend.services.notification import NotificationService
+from backend.api.v1.endpoints.projects import get_user_project_ids
 from supabase import create_client, Client
 
 router = APIRouter()
@@ -20,7 +21,7 @@ def get_dashboard_stats(
     current_user = Depends(deps.get_current_user),
 ):
     """
-    Get aggregated statistics for dashboard.
+    Get aggregated statistics for dashboard (includes member projects).
     Cached for 60 seconds to improve performance.
     """
     if not supabase:
@@ -37,14 +38,9 @@ def get_dashboard_stats(
 
         today = datetime.now().date().isoformat()
 
-        # Optimized: Reduce database round trips by using better query strategy
-        # 1. Get projects with count
-        projects_response = supabase.table("projects")\
-            .select("id", count="exact")\
-            .eq("owner_id", user_id)\
-            .execute()
-        projects_count = projects_response.count if projects_response.count is not None else 0
-        project_ids = [p['id'] for p in projects_response.data] if projects_response.data else []
+        # Get all accessible project IDs (owned + member)
+        project_ids = get_user_project_ids(user_id)
+        projects_count = len(project_ids)
 
         # Initialize defaults
         doc_count = 0

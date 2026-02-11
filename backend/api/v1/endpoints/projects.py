@@ -13,6 +13,26 @@ router = APIRouter()
 # Initialize Supabase Client with Service Role Key (bypasses RLS for backend operations)
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY else None
 
+
+def get_user_project_ids(user_id: str) -> list[str]:
+    """Get all project IDs the user owns or is a member of."""
+    # 1. Owned projects
+    owned = supabase.table("projects").select("id").eq("owner_id", user_id).execute()
+    project_ids = [p["id"] for p in (owned.data or [])]
+
+    # 2. Member projects (accepted)
+    memberships = supabase.table("project_members") \
+        .select("project_id") \
+        .eq("user_id", user_id) \
+        .eq("status", "accepted") \
+        .execute()
+    member_pids = [m["project_id"] for m in (memberships.data or [])]
+
+    # Merge & deduplicate
+    all_ids = list(set(project_ids + member_pids))
+    return all_ids
+
+
 @router.get("/", response_model=List[ProjectWithCounts])
 def read_projects(
     skip: int = 0,
@@ -20,20 +40,29 @@ def read_projects(
     current_user = Depends(deps.get_current_user),
 ):
     """
-    Retrieve projects owned by current user, with doc_count and event_count.
+    Retrieve projects owned by or shared with current user, with doc_count and event_count.
     Cached for 120 seconds to improve performance.
     """
     if not supabase:
         raise HTTPException(status_code=500, detail="Database connection error")
 
     try:
+        user_id = str(current_user.id)
+
         # Try to get from cache first
-        cache_key = f"projects:list:{current_user.id}:{skip}:{limit}"
+        cache_key = f"projects:list:{user_id}:{skip}:{limit}"
         cached_data = cache.get(cache_key)
         if cached_data:
             return cached_data
-        # 1. Get projects
-        response = supabase.table("projects").select("*").eq("owner_id", current_user.id).range(skip, skip + limit - 1).execute()
+
+        # 1. Get all accessible project IDs (owned + member)
+        all_project_ids = get_user_project_ids(user_id)
+
+        if not all_project_ids:
+            return []
+
+        # 2. Get projects
+        response = supabase.table("projects").select("*").in_("id", all_project_ids).range(skip, skip + limit - 1).execute()
         projects = response.data or []
 
         if not projects:
@@ -41,7 +70,7 @@ def read_projects(
 
         project_ids = [p["id"] for p in projects]
 
-        # 2. Count documents per project
+        # 3. Count documents per project
         docs_response = supabase.table("documents").select("id, project_id").in_("project_id", project_ids).execute()
         docs = docs_response.data or []
         doc_count_map: dict[str, int] = {}
@@ -51,19 +80,18 @@ def read_projects(
             doc_count_map[pid] = doc_count_map.get(pid, 0) + 1
             doc_ids.append(doc["id"])
 
-        # 3. Count events per project (via documents)
+        # 4. Count events per project (via documents)
         event_count_map: dict[str, int] = {}
         if doc_ids:
             events_response = supabase.table("deadline_events").select("id, document_id").in_("document_id", doc_ids).execute()
             events = events_response.data or []
-            # Build doc_id -> project_id mapping
             doc_to_project = {doc["id"]: doc["project_id"] for doc in docs}
             for event in events:
                 pid = doc_to_project.get(event["document_id"])
                 if pid:
                     event_count_map[pid] = event_count_map.get(pid, 0) + 1
 
-        # 4. Merge counts into projects
+        # 5. Merge counts into projects
         result = []
         for p in projects:
             p["doc_count"] = doc_count_map.get(p["id"], 0)
@@ -109,19 +137,40 @@ def create_project(
         print(f"Error creating project: {e}")
         raise HTTPException(status_code=400, detail=str(e))
 
+def verify_project_access(project_id: str, user_id: str) -> dict:
+    """Verify the user is owner or accepted member. Returns project data."""
+    project = supabase.table("projects").select("*").eq("id", project_id).single().execute()
+    if not project.data:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    if project.data["owner_id"] == user_id:
+        return project.data
+
+    member = supabase.table("project_members") \
+        .select("id") \
+        .eq("project_id", project_id) \
+        .eq("user_id", user_id) \
+        .eq("status", "accepted") \
+        .execute()
+
+    if not member.data:
+        raise HTTPException(status_code=404, detail="Project not found")
+
+    return project.data
+
+
 @router.get("/{id}", response_model=Project)
 def read_project(
     id: uuid.UUID,
     current_user = Depends(deps.get_current_user),
 ):
     """
-    Get project by ID.
+    Get project by ID (owner or member).
     """
     try:
-        response = supabase.table("projects").select("*").eq("id", str(id)).eq("owner_id", current_user.id).single().execute()
-        if not response.data:
-             raise HTTPException(status_code=404, detail="Project not found")
-        return response.data
+        return verify_project_access(str(id), str(current_user.id))
+    except HTTPException:
+        raise
     except Exception as e:
          print(f"Error msg: {str(e)}")
          raise HTTPException(status_code=404, detail="Project not found")
@@ -201,16 +250,14 @@ def get_project_documents(
     current_user = Depends(deps.get_current_user),
 ):
     """
-    Get all documents for a project.
+    Get all documents for a project (owner or member).
     """
     if not supabase:
         raise HTTPException(status_code=500, detail="Database connection error")
 
     try:
-        # Verify project ownership
-        project = supabase.table("projects").select("id").eq("id", str(id)).eq("owner_id", current_user.id).execute()
-        if not project.data:
-            raise HTTPException(status_code=404, detail="Project not found")
+        # Verify project access (owner or member)
+        verify_project_access(str(id), str(current_user.id))
 
         # Get all documents for this project
         response = supabase.table("documents").select("*").eq("project_id", str(id)).order("created_at", desc=True).execute()

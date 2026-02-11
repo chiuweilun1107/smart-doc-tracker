@@ -80,6 +80,24 @@ class NotificationRule(Base):
     # Relationships
     user = relationship("Profile", backref="notification_rules")
 
+# Project Member
+class ProjectMember(Base):
+    __tablename__ = "project_members"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id", ondelete="CASCADE"), nullable=False)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("profiles.id", ondelete="CASCADE"), nullable=True)
+    email = Column(String, nullable=False)
+    status = Column(String, default="pending")  # pending, accepted
+    invited_by = Column(UUID(as_uuid=True), ForeignKey("profiles.id"), nullable=False)
+    invited_at = Column(DateTime(timezone=True), server_default=func.now())
+    joined_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    project = relationship("Project", backref="members")
+    user = relationship("Profile", foreign_keys=[user_id], backref="memberships")
+    inviter = relationship("Profile", foreign_keys=[invited_by])
+
 # Notification Log (Audit trail of sent notifications)
 class NotificationLog(Base):
     __tablename__ = "notification_logs"
