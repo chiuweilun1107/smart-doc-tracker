@@ -11,14 +11,15 @@ load_dotenv(env_path)
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Smart Doc Tracker API"
-    API_V1_STR: str = "/api/v1"
+    API_V1_STR: str = "/v1"
     
     # Database
     DATABASE_URL: str = os.getenv("DATABASE_URL", "")
     
     # Supabase - We use these for auth verification
-    SUPABASE_URL: str = os.getenv("SUPABASE_URL", "")
-    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY", "") # Anon Key is sufficient for client operations
+    SUPABASE_URL: str = os.getenv("SUPABASE_URL") or os.getenv("NEXT_PUBLIC_SUPABASE_URL", "")
+    SUPABASE_KEY: str = os.getenv("SUPABASE_KEY") or os.getenv("NEXT_PUBLIC_SUPABASE_ANON_KEY", "") # Anon Key for auth verification
+    SUPABASE_SERVICE_ROLE_KEY: str = os.getenv("SUPABASE_SERVICE_ROLE_KEY", "") # Service Role Key bypasses RLS
     
     # JWT Settings (If verifying locally without API call, need JWT_SECRET)
     # But for now we will trust Supabase client based verification or simple decoding if secret provided

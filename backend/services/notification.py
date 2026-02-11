@@ -61,19 +61,95 @@ class NotificationService:
         
         notification_type = None
         
-        if delta == 7:
-            notification_type = "WEEK_AHEAD"
-        elif delta == 3:
-            notification_type = "3_DAYS_LEFT"
-        elif delta == 1:
-            notification_type = "TOMORROW"
-        elif delta == 0:
-            notification_type = "TODAY"
-        elif delta < 0 :
-            notification_type = "OVERDUE"
+        # Dynamic Rules from DB
+        try:
+            from backend.models import NotificationRule
+            rules = db.query(NotificationRule).filter(NotificationRule.is_active == True).all()
+        except Exception as e:
+            logger.error(f"Failed to fetch notification rules: {e}")
+            rules = []
+
+        notification_type = None
+        
+        # Check if delta matches any rule
+        for rule in rules:
+            if delta == rule.days_before:
+                notification_type = rule.severity.upper() # INFO, WARNING, CRITICAL
+                # Map standard types for clarity if needed, or just use severity
+                if rule.days_before == 7: notification_type = "WEEK_AHEAD"
+                elif rule.days_before == 3: notification_type = "3_DAYS_LEFT"
+                elif rule.days_before == 1: notification_type = "TOMORROW"
+                elif rule.days_before == 0: notification_type = "TODAY"
+                
+                break # Match found
             
+        if delta < 0 and delta >= -3: # simple overdue logic
+             notification_type = "OVERDUE"
+
         if notification_type:
             self.send_notification(db, event, notification_type, delta)
+
+    def create_deadline_flex_message(self, project_name, task_title, due_date, days_left, event_id):
+        from linebot.models import (
+            FlexSendMessage, BubbleContainer, BoxComponent, TextComponent, 
+            ButtonComponent, PostbackAction, SeparatorComponent
+        )
+
+        # Color logic based on urgency
+        header_color = "#00B900" # Green (Default)
+        if days_left <= 1:
+            header_color = "#FF3333" # Red (Critical)
+        elif days_left <= 3:
+            header_color = "#FF9900" # Orange (Warning)
+
+        bubble = BubbleContainer(
+            header=BoxComponent(
+                layout='vertical',
+                background_color=header_color,
+                contents=[
+                    TextComponent(text="Task Deadline", weight='bold', color='#FFFFFF', size='sm')
+                ]
+            ),
+            body=BoxComponent(
+                layout='vertical',
+                contents=[
+                    TextComponent(text=task_title, weight='bold', size='xl'),
+                    TextComponent(text=f"Project: {project_name}", size='sm', color='#666666', margin='md'),
+                    SeparatorComponent(margin='md'),
+                    BoxComponent(
+                        layout='horizontal',
+                        margin='md',
+                        contents=[
+                            TextComponent(text="Due Date", size='sm', color='#aaaaaa', flex=1),
+                            TextComponent(text=due_date, size='sm', color='#666666', flex=2, align='end')
+                        ]
+                    ),
+                    BoxComponent(
+                        layout='horizontal',
+                        margin='xs',
+                        contents=[
+                            TextComponent(text="Days Left", size='sm', color='#aaaaaa', flex=1),
+                            TextComponent(text=str(days_left), size='sm', color=header_color, flex=2, align='end', weight='bold')
+                        ]
+                    )
+                ]
+            ),
+            footer=BoxComponent(
+                layout='vertical',
+                contents=[
+                    ButtonComponent(
+                        style='primary',
+                        height='sm',
+                        action=PostbackAction(
+                            label='Mark as Completed',
+                            data=f"action=complete&task_id={event_id}",
+                            display_text="Marking task as completed..."
+                        )
+                    )
+                ]
+            )
+        )
+        return FlexSendMessage(alt_text=f"Task Due: {task_title}", contents=bubble)
 
     def send_notification(self, db: Session, event: DeadlineEvent, type: str, days_left: int):
         # Get Owner info
@@ -87,18 +163,25 @@ class NotificationService:
         owner = db.query(Profile).filter(Profile.id == project.owner_id).first()
         if not owner: return
         
-        message_text = f"[{type}] Project: {project.name}\nTask: {event.title}\nDue: {event.due_date} ({days_left} days left)"
-        
-        logger.info(f"Sending notification to {owner.email} (Line: {owner.line_user_id}): {message_text}")
+        logger.info(f"Sending notification to {owner.email} (Line: {owner.line_user_id}) for Task: {event.title}")
         
         if owner.line_user_id and settings.LINE_CHANNEL_ACCESS_TOKEN:
             try:
                 from linebot import LineBotApi
-                from linebot.models import TextSendMessage
                 
                 line_bot_api = LineBotApi(settings.LINE_CHANNEL_ACCESS_TOKEN)
-                line_bot_api.push_message(owner.line_user_id, TextSendMessage(text=message_text))
-                logger.info("Line notification sent successfully")
+                
+                # Create Flex Message
+                flex_message = self.create_deadline_flex_message(
+                    project_name=project.name,
+                    task_title=event.title,
+                    due_date=event.due_date,
+                    days_left=days_left,
+                    event_id=str(event.id)
+                )
+                
+                line_bot_api.push_message(owner.line_user_id, flex_message)
+                logger.info("Line Flex Message notification sent successfully")
             except Exception as e:
                 logger.error(f"Failed to send Line notification: {e}")
 

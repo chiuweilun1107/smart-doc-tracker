@@ -10,9 +10,8 @@ from supabase import create_client, Client
 import uuid
 import os
 
-# Initialize Supabase Client (Lazy Load or Global)
-# Note: Should refactor this into a common provider if used in multiple places
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_KEY else None
+# Initialize Supabase Client with Service Role Key (bypasses RLS for backend operations)
+supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY else None
 
 router = APIRouter()
 
@@ -25,9 +24,9 @@ router = APIRouter()
 
 def get_supabase_user_client(token: str) -> Client:
     """Helper to get a supabase client authenticated as the user"""
-    if not settings.SUPABASE_URL or not settings.SUPABASE_KEY:
+    if not settings.SUPABASE_URL or not settings.SUPABASE_SERVICE_ROLE_KEY:
         raise HTTPException(500, "Supabase credentials not configured")
-    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY)
+    client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY)
     client.auth.set_session(token, "ref_token_placeholder") # We only need access token for requests usually
     # Actually set_session takes access_token and refresh_token. 
     # A cleaner way is just passing headers to postgrest, but the python client manages state.

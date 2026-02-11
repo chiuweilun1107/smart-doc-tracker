@@ -63,3 +63,13 @@ class DeadlineEvent(Base):
     
     # Relationships
     document = relationship("Document", backref="events")
+
+# Notification Rule
+class NotificationRule(Base):
+    __tablename__ = "notification_rules"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    days_before = Column(Integer, nullable=False) # e.g., 7, 3, 1, 0
+    severity = Column(String, default="info") # info, warning, critical
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -18,6 +18,7 @@
 | ✅ | 中 | `Task-FE-004` | **儀表板開發 (Dashboard UI)**<br>依據設計稿實作清單視圖與統計卡片 | `Task-BE-003` | [查看](./tasks/Task-FE-004.md) |
 | ✅ | 中 | `Task-FE-005` | **專案與文件校對頁 (Project Detail UI)**<br>雙欄式校對介面與事件確認功能 | `Task-BE-003` | [查看](./tasks/Task-FE-005.md) |
 | ✅ | 中 | `Task-BE-006` | **通知排程與發送服務 (Notification)**<br>實作排程檢查期限並發送 Email/Line | `Task-BE-003` | [查看](./tasks/Task-BE-006.md) |
-| ⚪️ | 中 | `Task-BE-007` | **Line Webhook 處理 (Line Integration)**<br>處理 Line Flex Message 回調互動 | `Task-BE-006` | [查看](./tasks/Task-BE-007.md) |
-| ⚪️ | 低 | `Task-BE-008` | **系統設定 API (System Settings)**<br>Line ID 綁定與通知規則管理 | `Task-DB-001` | [查看](./tasks/Task-BE-008.md) |
-| ⚪️ | 低 | `Task-FE-010` | **設定頁面 (Settings UI)**<br>Line 綁定介面與規則設定 | `Task-BE-008` | [查看](./tasks/Task-FE-010.md) |
+| ✅ | 中 | `Task-BE-007` | **Line Webhook 處理 (Line Integration)**<br>處理 Line Flex Message 回調互動 | `Task-BE-006` | [查看](./tasks/Task-BE-007.md) |
+| ✅ | 低 | `Task-BE-008` | **系統設定 API (System Settings)**<br>Line ID 綁定與通知規則管理 | `Task-DB-001` | [查看](./tasks/Task-BE-008.md) |
+| ✅ | 低 | `Task-FE-010` | **設定頁面 (Settings UI)**<br>Line 綁定介面與規則設定 | `Task-BE-008` | [查看](./tasks/Task-FE-010.md) |
+| ✅ | 中 | `Task-UI-011` | **UI/UX 2.0 大改版 (Redesign)**<br>Landing Page、Design System、Global Theme | `Task-FE-010` | [查看](./docs/design_system.md) |

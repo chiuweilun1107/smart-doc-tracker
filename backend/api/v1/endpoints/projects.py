@@ -9,8 +9,8 @@ import uuid
 
 router = APIRouter()
 
-# Initialize Supabase Client
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_KEY else None
+# Initialize Supabase Client with Service Role Key (bypasses RLS for backend operations)
+supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY else None
 
 @router.get("/", response_model=List[Project])
 def read_projects(
@@ -46,12 +46,10 @@ def create_project(
         raise HTTPException(status_code=500, detail="Database connection error")
 
     try:
-        project_data = project_in.dict()
-        project_data["owner_id"] = current_user.id
-        # ID and timestamps handled by DB default (or generate UUID here if needed)
-        # Let's let DB handle ID? Or generate? SQLAlchemy model has default=uuid.uuid4
-        # Supabase API (Postgrest) usually returns created object
-        
+        project_data = project_in.dict(exclude_none=True)
+        project_data["id"] = str(uuid.uuid4())
+        project_data["owner_id"] = str(current_user.id)
+
         response = supabase.table("projects").insert(project_data).execute()
         
         if response.data and len(response.data) > 0:

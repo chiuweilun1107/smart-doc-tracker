@@ -1,9 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import { apiClient } from "@/lib/api"
-import { supabase } from "@/lib/supabase"
 import { ProjectCard } from "@/components/ProjectCard"
 import { NewProjectDialog } from "@/components/NewProjectDialog"
 import { Loader2 } from "lucide-react"
@@ -11,17 +9,9 @@ import { Loader2 } from "lucide-react"
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<any[]>([])
     const [loading, setLoading] = useState(true)
-    const router = useRouter()
 
     useEffect(() => {
-        const checkUser = async () => {
-            const { data: { session } } = await supabase.auth.getSession()
-            if (!session) {
-                router.push('/login')
-                return
-            }
-        }
-        checkUser()
+        fetchProjects()
     }, [])
 
     const fetchProjects = async () => {

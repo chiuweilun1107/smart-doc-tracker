@@ -14,12 +14,12 @@
 ---
 
 ## 4. 開發待辦清單
-- [ ] 實作 `/api/v1/settings/rules` (CRUD 通知規則)。
-- [ ] 實作 `/api/v1/users/line-binding` (綁定 Line ID)。
-- [ ] 實作使用者列表管理 API (Admin only)。
+- [x] 實作 `/api/v1/settings/rules` (CRUD 通知規則)。
+- [x] 實作 `/api/v1/users/line-binding` (綁定 Line ID)。
+- [x] 實作使用者列表管理 API (Admin only)。
 
 ---
 
 ## 6. 驗收標準
-- [ ] 管理員可新增一條 "T-14" 的通知規則。
-- [ ] 使用者可查詢自己的 Line 綁定狀態。
+- [x] 管理員可新增一條 "T-14" 的通知規則。
+- [x] 使用者可查詢自己的 Line 綁定狀態。

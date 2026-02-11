@@ -103,11 +103,14 @@ export default function DashboardPage() {
                 {/* Right Column: Quick Actions or Calendar (Future) */}
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold">快速操作</h2>
-                    <div className="p-4 border rounded-lg bg-gray-50">
-                        <p className="text-sm text-gray-500 mb-4">快速捷徑</p>
+                    <div className="p-4 border rounded-xl bg-card text-card-foreground shadow-sm">
+                        <p className="text-sm text-muted-foreground mb-4 font-medium uppercase tracking-wider">Quick Actions</p>
                         <div className="space-y-2">
-                            <a href="/projects" className="block w-full py-2 px-4 bg-white border rounded hover:bg-gray-50 text-center text-sm">
+                            <a href="/projects" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
                                 前往專案列表
+                            </a>
+                            <a href="/settings" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
+                                系統設定
                             </a>
                             {/* Add more shortcuts */}
                         </div>

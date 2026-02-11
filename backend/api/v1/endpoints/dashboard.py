@@ -12,7 +12,7 @@ from backend.services.notification import NotificationService
 from supabase import create_client, Client
 
 router = APIRouter()
-supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_KEY else None
+supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY else None
 
 @router.get("/stats")
 def get_dashboard_stats(
@@ -25,7 +25,11 @@ def get_dashboard_stats(
         raise HTTPException(status_code=500, detail="Database connection error")
         
     try:
-        user_id = current_user.id
+        # Safely get user_id regardless of whether current_user is an object or dict
+        user_id = getattr(current_user, "id", None) or current_user.get("id")
+        if not user_id:
+             raise HTTPException(status_code=401, detail="User ID not found in token")
+             
         today = datetime.now().date().isoformat()
         
         # 1. Total Projects
@@ -110,8 +114,10 @@ def get_dashboard_stats(
         }
 
     except Exception as e:
-        print(f"Error fetching stats: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        import traceback
+        error_msg = f"Error fetching stats: {str(e)}\n{traceback.format_exc()}"
+        print(error_msg)
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @router.post("/notifications/trigger")
 def trigger_notifications(

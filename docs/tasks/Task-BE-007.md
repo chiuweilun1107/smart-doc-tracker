@@ -21,15 +21,15 @@
 ---
 
 ## 4. 開發待辦清單
-- [ ] 實作 `/api/v1/webhooks/line`。
-- [ ] 驗證 Line Signature (安全性)。
-- [ ] 解析 Postback Data (包含 `task_id`, `action=mark_done`)。
-- [ ] 更新資料庫狀態 (`deadline_events.status = 'completed'`).
-- [ ] 回覆 Line 訊息 (Reply Message): "已更新狀態"。
+- [x] 實作 `/api/v1/webhooks/line`。
+- [x] 驗證 Line Signature (安全性)。
+- [x] 解析 Postback Data (包含 `task_id`, `action=mark_done`)。
+- [x] 更新資料庫狀態 (`deadline_events.status = 'completed'`).
+- [x] 回覆 Line 訊息 (Reply Message): "已更新狀態"。
 
 ---
 
 ## 6. 驗收標準
-- [ ] 模擬 Postback Event，API 回傳 200 OK。
-- [ ] 資料庫中對應的 Task 狀態變為 Completed。
-- [ ] Line 手機端收到「更新成功」的回覆。
+- [x] 模擬 Postback Event，API 回傳 200 OK。
+- [x] 資料庫中對應的 Task 狀態變為 Completed。
+- [x] Line 手機端收到「更新成功」的回覆。
