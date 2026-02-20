@@ -4,9 +4,12 @@ venv/
 __pycache__/
 *.pyc
 
-# Environment variables (all .env variants)
+# Environment variables
 .env
-.env.*
+.env.local
+.env.*.local
+
+# Keep examples
 !.env.example
 
 .DS_Store

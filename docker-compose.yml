@@ -1,20 +1,8 @@
-services:
-  caddy:
-    image: caddy:2-alpine
-    container_name: sdt-caddy
-    ports:
-      - "80:80"
-      - "443:443"
-      - "443:443/udp"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      - backend
-      - frontend
-    restart: unless-stopped
+## Base config - shared between dev and prod
+## Dev:  docker compose up
+## Prod: docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d
 
+services:
   backend:
     build:
       context: ./backend
@@ -28,7 +16,6 @@ services:
       - .env
     environment:
       - PYTHONPATH=/app
-    restart: unless-stopped
 
   frontend:
     build:
@@ -37,7 +24,8 @@ services:
       args:
         NEXT_PUBLIC_SUPABASE_URL: ${NEXT_PUBLIC_SUPABASE_URL}
         NEXT_PUBLIC_SUPABASE_ANON_KEY: ${NEXT_PUBLIC_SUPABASE_ANON_KEY}
-        NEXT_PUBLIC_API_URL: https://5-78-118-41.sslip.io/api/v1
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-http://localhost:8000/api/v1}
+        NEXT_PUBLIC_ONLYOFFICE_API_URL: ${NEXT_PUBLIC_ONLYOFFICE_API_URL:-}
     container_name: sdt-frontend
     expose:
       - "3000"
@@ -45,8 +33,3 @@ services:
       - "3000:3000"
     depends_on:
       - backend
-    restart: unless-stopped
-
-volumes:
-  caddy_data:
-  caddy_config:
