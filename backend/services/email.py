@@ -155,14 +155,16 @@ class EmailService:
         subject = f"{inviter_name} 邀請你加入專案「{project_name}」"
 
         if is_existing_user:
-            # Already registered — direct login link
-            action_url = f"{app_url}/login"
+            # Already registered — direct login link with invite param
+            from urllib.parse import quote
+            action_url = f"{app_url}/login?invite=true&email={quote(to_email)}"
             action_text = "登入查看專案"
             status_text = "你已被自動加入此專案，登入即可查看。"
             note_text = ""
         else:
-            # Not registered — signup link
-            action_url = f"{app_url}/signup"
+            # Not registered — signup link with email param for middleware passthrough
+            from urllib.parse import quote
+            action_url = f"{app_url}/signup?invite=true&email={quote(to_email)}"
             action_text = "立即註冊加入"
             status_text = "加入後即可查看此專案的文件和截止日期，並接收到期提醒通知。"
             note_text = f'<hr style="border: none; border-top: 1px solid #e5e7eb; margin: 16px 0;" /><p style="font-size: 12px; color: #9ca3af; margin: 0;">請使用此信箱（{to_email}）註冊，系統會自動將你加入專案。</p>'

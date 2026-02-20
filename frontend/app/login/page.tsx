@@ -2,7 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import Link from "next/link"
 import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
@@ -15,21 +15,37 @@ const REMEMBER_KEY = "sdt_remembered_email"
 
 export default function LoginPage() {
     const router = useRouter()
+    const searchParams = useSearchParams()
     const [loading, setLoading] = useState(false)
-    const [email, setEmail] = useState("")
+    const inviteEmail = searchParams.get("email") || ""
+    const isInvite = searchParams.get("invite") === "true"
+    const [email, setEmail] = useState(inviteEmail)
     const [password, setPassword] = useState("")
     const [showPassword, setShowPassword] = useState(false)
     const [rememberMe, setRememberMe] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    // Restore remembered email on mount
+    // 如果是邀請連結且瀏覽器已登入其他帳號，先登出
     useEffect(() => {
-        const saved = localStorage.getItem(REMEMBER_KEY)
-        if (saved) {
-            setEmail(saved)
-            setRememberMe(true)
+        if (isInvite) {
+            supabase.auth.getUser().then(({ data: { user } }) => {
+                if (user && user.email !== inviteEmail) {
+                    supabase.auth.signOut()
+                }
+            })
         }
-    }, [])
+    }, [isInvite, inviteEmail])
+
+    // Restore remembered email on mount (only if not invite)
+    useEffect(() => {
+        if (!inviteEmail) {
+            const saved = localStorage.getItem(REMEMBER_KEY)
+            if (saved) {
+                setEmail(saved)
+                setRememberMe(true)
+            }
+        }
+    }, [inviteEmail])
 
     const handleForgotPassword = async () => {
         if (!email) {
