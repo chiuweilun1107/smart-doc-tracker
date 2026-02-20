@@ -182,7 +182,7 @@ export function EmailSettingsCard() {
             </CardHeader>
             <CardContent className="space-y-6">
                 {loading ? (
-                    <div className="text-center py-4 text-gray-500">載入中...</div>
+                    <div className="text-center py-4 text-muted-foreground">載入中...</div>
                 ) : config ? (
                     <>
                         {/* Status Summary - clear explanation */}
@@ -348,7 +348,7 @@ export function EmailSettingsCard() {
                         )}
                     </>
                 ) : (
-                    <p className="text-sm text-gray-400">無法取得 Email 設定狀態</p>
+                    <p className="text-sm text-muted-foreground">無法取得 Email 設定狀態</p>
                 )}
             </CardContent>
         </Card>

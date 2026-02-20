@@ -95,7 +95,7 @@ export default function DashboardPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 {/* Left Column: Recent Tasks */}
                 <div className="lg:col-span-2 space-y-4">
-                    <h2 className="text-xl font-semibold">近期待辦事項</h2>
+                    <h2 className="text-xl font-semibold">近期截止事項</h2>
                     <RecentTaskList tasks={stats?.recent_events || []} />
                 </div>
 
@@ -103,7 +103,7 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold">快速操作</h2>
                     <div className="p-4 border rounded-xl bg-card text-card-foreground shadow-sm">
-                        <p className="text-sm text-muted-foreground mb-4 font-medium uppercase tracking-wider">快速操作</p>
+                        <p className="text-sm text-muted-foreground mb-4 font-medium">常用功能捷徑</p>
                         <div className="space-y-2">
                             <Link href="/projects" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
                                 前往專案列表

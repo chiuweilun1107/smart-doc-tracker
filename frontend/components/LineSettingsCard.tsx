@@ -93,7 +93,7 @@ export function LineSettingsCard() {
             </CardHeader>
             <CardContent className="space-y-6">
                 {loading ? (
-                    <div className="text-center py-4 text-gray-500">載入中...</div>
+                    <div className="text-center py-4 text-muted-foreground">載入中...</div>
                 ) : config ? (
                     <>
                         {/* Status */}

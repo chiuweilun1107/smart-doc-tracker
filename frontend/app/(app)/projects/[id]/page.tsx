@@ -205,7 +205,12 @@ export default function ProjectDetailPage() {
     }
 
     if (loading) return <LoadingState />
-    if (!project) return <div className="p-8">找不到專案</div>
+    if (!project) return (
+        <div className="container mx-auto py-16 px-4 text-center space-y-4">
+            <p className="text-lg text-muted-foreground">找不到此專案，可能已被刪除或您沒有存取權限。</p>
+            <Link href="/projects" className="inline-block text-blue-600 hover:underline">← 返回專案列表</Link>
+        </div>
+    )
 
     return (
         <div className="container mx-auto py-8 px-4 md:px-6 min-h-screen flex flex-col">
@@ -285,7 +290,7 @@ export default function ProjectDetailPage() {
                                     </div>
                                     <div>
                                         <span className="font-medium text-muted-foreground">格式:</span>
-                                        <p className="mt-1">{activeDoc.file_type?.toUpperCase() || 'N/A'}</p>
+                                        <p className="mt-1">{activeDoc.file_type?.toUpperCase() || '未知'}</p>
                                     </div>
                                     <div className="col-span-2">
                                         <span className="font-medium text-muted-foreground">狀態:</span>

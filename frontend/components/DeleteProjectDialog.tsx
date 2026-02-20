@@ -63,7 +63,7 @@ export function DeleteProjectDialog({
                                 <br /><br />
                                 此操作將同時刪除{" "}
                                 <strong>{docCount} 個文件</strong>和{" "}
-                                <strong>{eventCount} 個期限事件</strong>。
+                                <strong>{eventCount} 個截止事項</strong>。
                             </>
                         )}
                         <br /><br />

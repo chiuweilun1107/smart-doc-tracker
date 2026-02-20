@@ -10,6 +10,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, FileText, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react"
 import { translateError } from "@/lib/error-messages"
+import { toast } from "@/lib/toast"
 
 const REMEMBER_KEY = "sdt_remembered_email"
 
@@ -60,7 +61,7 @@ export default function LoginPage() {
                 setError(translateError(error.message))
             } else {
                 setError(null)
-                alert("密碼重設信已發送，請檢查信箱")
+                toast("密碼重設信已發送，請檢查信箱", "success")
             }
         } catch (err: any) {
             setError(err.message || "發送失敗，請稍後再試")

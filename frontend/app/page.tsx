@@ -69,7 +69,7 @@ export default async function LandingPage() {
               </Link>
               <Link href="#features">
                 <Button variant="outline" size="lg" className="h-12 px-8 rounded-full border-slate-200 hover:bg-slate-50 text-slate-700 dark:border-slate-800 dark:text-slate-300 dark:hover:bg-slate-900">
-                  觀看功能介紹
+                  了解功能介紹
                 </Button>
               </Link>
             </div>
@@ -117,7 +117,7 @@ export default async function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">智能排程提醒</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  動態 T-7、T-3、T-1 通知規則，確保您永遠先一步掌握進度。透過甘特圖檢視完整時程。
+                  自訂提前通知天數，確保您永遠先一步掌握進度。透過行事曆檢視完整時程。
                 </p>
               </div>
             </div>

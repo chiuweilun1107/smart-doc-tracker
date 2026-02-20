@@ -397,7 +397,7 @@ function CalendarView({ tasks, onTaskClick, projectColorMap }: {
                         {selectedTasks.length > 0 && ` - ${selectedTasks.length} 筆`}
                     </p>
                     {selectedTasks.length === 0 ? (
-                        <p className="text-xs text-muted-foreground text-center py-3">此日無任務</p>
+                        <p className="text-xs text-muted-foreground text-center py-3">此日無截止事項</p>
                     ) : (
                         selectedTasks.map(task => (
                             <TaskRow key={task.id} task={task} onClick={onTaskClick} projectColorMap={projectColorMap} />

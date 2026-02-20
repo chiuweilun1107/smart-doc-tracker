@@ -59,11 +59,11 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
         try {
             await apiClient.put(`/documents/events/${id}`, editForm)
             setEditingId(null)
-            toast("事件已更新", "success")
+            toast("截止事項已更新", "success")
             onUpdate() // Refresh data
         } catch (error) {
             console.error("Update failed", error)
-            toast("更新事件失敗", "error")
+            toast("更新失敗", "error")
         } finally {
             setSaving(false)
         }
@@ -72,7 +72,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
     const handleConfirm = async (id: string) => {
         try {
             await apiClient.put(`/documents/events/${id}`, { status: 'confirmed' })
-            toast("已確認此事件", "success")
+            toast("已確認此截止事項", "success")
             onUpdate() // Refresh data
         } catch (error) {
             console.error("Confirm failed", error)
@@ -92,7 +92,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
     }
 
     if (events.length === 0) {
-        return <div className="text-center py-10 text-muted-foreground">尚無解析出的事件</div>
+        return <div className="text-center py-10 text-muted-foreground">尚無解析出的截止事項</div>
     }
 
     // Sort events by due_date (earliest first)
@@ -107,8 +107,8 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
         <div className="space-y-4">
             {/* Info about confidence score */}
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 text-xs text-blue-800">
-                <p className="font-medium mb-1">💡 關於信任度</p>
-                <p>信任度是 AI 對該截止日期確定性的評估，分數越高表示 AI 越確定這是一個明確的截止日期。建議檢查低於 80% 的項目。</p>
+                <p className="font-medium mb-1">關於信心分數</p>
+                <p>信心分數是 AI 對該截止日期確定性的評估，分數越高表示 AI 越確定這是一個明確的截止日期。建議檢查低於 80% 的項目。</p>
             </div>
             {sortedEvents.map(event => (
                 <div key={event.id} className="p-4 border rounded-lg bg-card shadow-sm flex flex-col space-y-3">
@@ -118,7 +118,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
                             <Input
                                 value={editForm.title}
                                 onChange={e => setEditForm({ ...editForm, title: e.target.value })}
-                                placeholder="事件標題"
+                                placeholder="截止事項標題"
                             />
                             <div className="flex items-center space-x-2">
                                 <CalendarIcon className="w-4 h-4 text-muted-foreground" />

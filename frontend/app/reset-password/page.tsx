@@ -59,7 +59,8 @@ export default function ResetPasswordPage() {
             setSuccess(true)
             setTimeout(() => router.push("/login"), 3000)
         } catch (err: any) {
-            setError(err.message || "密碼重設失敗，請稍後再試")
+            const { translateError } = await import("@/lib/error-messages")
+            setError(translateError(err.message) || "密碼重設失敗，請稍後再試")
         } finally {
             setLoading(false)
         }
