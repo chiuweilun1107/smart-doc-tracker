@@ -8,13 +8,15 @@ import { supabase } from "@/lib/supabase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, FileText, CheckCircle2, ArrowRight } from "lucide-react"
+import { Loader2, FileText, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react"
+import { translateError } from "@/lib/error-messages"
 
 export default function SignupPage() {
     const router = useRouter()
     const [loading, setLoading] = useState(false)
     const [email, setEmail] = useState("")
     const [password, setPassword] = useState("")
+    const [showPassword, setShowPassword] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
 
@@ -31,7 +33,7 @@ export default function SignupPage() {
             setSuccess(true)
         } catch (err: any) {
             console.error("Signup failed", err)
-            setError(err.message || "註冊失敗，請稍後再試")
+            setError(translateError(err.message) || "註冊失敗，請稍後再試")
         } finally {
             setLoading(false)
         }
@@ -44,13 +46,13 @@ export default function SignupPage() {
                     <div className="mx-auto w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mb-4">
                         <CheckCircle2 className="w-8 h-8 text-green-600" />
                     </div>
-                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">Account Created!</h2>
+                    <h2 className="text-2xl font-bold text-zinc-900 dark:text-white">帳號建立成功！</h2>
                     <p className="text-zinc-600 dark:text-zinc-400">
-                        Please check your email to confirm your account. After confirmation, you can log in.
+                        請檢查您的信箱確認帳號。確認後即可登入。
                     </p>
                     <Link href="/login">
                         <Button className="w-full">
-                            Go to Login
+                            前往登入
                         </Button>
                     </Link>
                 </div>
@@ -71,15 +73,15 @@ export default function SignupPage() {
 
                 <div className="z-10 space-y-8 max-w-lg">
                     <h1 className="text-4xl font-bold leading-tight">
-                        Join Smart Doc Tracker Today.
+                        立即加入 Smart Doc Tracker
                     </h1>
                     <p className="text-lg text-zinc-300">
-                        Get started with the most advanced document tracking system for government tenders.
+                        開始使用最先進的政府標案文件追蹤系統。
                     </p>
                 </div>
 
                 <div className="z-10 text-sm text-zinc-500">
-                    &copy; 2024 Smart Doc Tracker. All rights reserved.
+                    &copy; {new Date().getFullYear()} Smart Doc Tracker. 版權所有。
                 </div>
 
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-blue-900/20 rounded-full blur-3xl -z-0"></div>
@@ -90,10 +92,10 @@ export default function SignupPage() {
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center lg:text-left">
                         <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            Create an account
+                            建立帳號
                         </h2>
                         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                            Enter your email below to create your account
+                            請輸入 Email 以建立帳號
                         </p>
                     </div>
 
@@ -112,15 +114,30 @@ export default function SignupPage() {
                         </div>
 
                         <div className="space-y-2">
-                            <Label htmlFor="password">Password</Label>
-                            <Input
-                                id="password"
-                                type="password"
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required
-                                className="h-11"
-                            />
+                            <Label htmlFor="password">密碼</Label>
+                            <div className="relative">
+                                <Input
+                                    id="password"
+                                    type={showPassword ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required
+                                    className="h-11 pr-10"
+                                />
+                                <button
+                                    type="button"
+                                    onClick={() => setShowPassword(!showPassword)}
+                                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors"
+                                    tabIndex={-1}
+                                >
+                                    {showPassword ? (
+                                        <EyeOff className="w-4 h-4" />
+                                    ) : (
+                                        <Eye className="w-4 h-4" />
+                                    )}
+                                </button>
+                            </div>
+                            <p className="text-xs text-muted-foreground">密碼至少需要 6 個字元</p>
                         </div>
 
                         {error && (
@@ -133,20 +150,20 @@ export default function SignupPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Creating account...
+                                    建立帳號中...
                                 </>
                             ) : (
                                 <>
-                                    Create account <ArrowRight className="ml-2 h-4 w-4" />
+                                    建立帳號 <ArrowRight className="ml-2 h-4 w-4" />
                                 </>
                             )}
                         </Button>
                     </form>
 
                     <p className="px-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                        Already have an account?{" "}
+                        已有帳號？{" "}
                         <Link href="/login" className="font-medium text-blue-600 hover:text-blue-500 underline underline-offset-4">
-                            Sign in
+                            登入
                         </Link>
                     </p>
                 </div>

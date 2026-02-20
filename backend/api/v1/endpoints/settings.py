@@ -1,5 +1,6 @@
 
 import json
+from datetime import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import text
@@ -73,7 +74,7 @@ class NotificationLogResponse(BaseModel):
     status: str
     message: Optional[str]
     error_message: Optional[str]
-    sent_at: Optional[str]
+    sent_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True
@@ -99,7 +100,7 @@ def create_notification_rule(
     db: Session = Depends(get_db)
 ):
     """Create a new notification rule for current user."""
-    db_rule = NotificationRule(**rule.dict(), user_id=str(current_user.id))
+    db_rule = NotificationRule(**rule.model_dump(), user_id=str(current_user.id))
     db.add(db_rule)
     db.commit()
     db.refresh(db_rule)
@@ -125,7 +126,7 @@ def delete_notification_rule(
 
 @router.get("/email-config", response_model=EmailConfigResponse)
 def get_email_config(
-    current_user = Depends(deps.get_current_user),
+    current_user = Depends(deps.require_admin),
     db: Session = Depends(get_db),
 ):
     """Get current email provider configuration."""
@@ -156,7 +157,7 @@ def get_email_config(
 @router.put("/email-config")
 def update_email_config(
     config: EmailConfigUpdate,
-    current_user = Depends(deps.get_current_user),
+    current_user = Depends(deps.require_admin),
     db: Session = Depends(get_db),
 ):
     """Update email provider configuration. Saves to system_settings table."""
@@ -245,7 +246,7 @@ def send_test_email(
 
 @router.get("/line-config", response_model=LineConfigResponse)
 def get_line_config(
-    current_user = Depends(deps.get_current_user),
+    current_user = Depends(deps.require_admin),
     db: Session = Depends(get_db),
 ):
     """Get current LINE bot configuration."""
@@ -265,7 +266,7 @@ def get_line_config(
 @router.put("/line-config")
 def update_line_config(
     config: LineConfigUpdate,
-    current_user = Depends(deps.get_current_user),
+    current_user = Depends(deps.require_admin),
     db: Session = Depends(get_db),
 ):
     """Update LINE bot configuration. Auto-detects bot ID and name from LINE API."""

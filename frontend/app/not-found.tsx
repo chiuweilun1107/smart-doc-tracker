@@ -11,16 +11,16 @@ export default function NotFound() {
                     <FileQuestion className="w-12 h-12 text-slate-400" />
                 </div>
 
-                <h1 className="text-4xl font-bold text-slate-900 dark:text-white">Page not found</h1>
+                <h1 className="text-4xl font-bold text-slate-900 dark:text-white">找不到頁面</h1>
 
                 <p className="text-slate-600 dark:text-slate-400 text-lg">
-                    Sorry, we couldn't find the page you're looking for. It might have been moved or doesn't exist.
+                    抱歉，我們找不到您要的頁面。該頁面可能已被移動或不存在。
                 </p>
 
                 <div className="flex justify-center pt-4">
                     <Link href="/">
                         <Button variant="outline" className="gap-2">
-                            <ArrowLeft className="w-4 h-4" /> Back to Home
+                            <ArrowLeft className="w-4 h-4" /> 返回首頁
                         </Button>
                     </Link>
                 </div>

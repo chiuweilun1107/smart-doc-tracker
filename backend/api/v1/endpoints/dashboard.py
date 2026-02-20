@@ -1,3 +1,5 @@
+import logging
+
 from fastapi import APIRouter, Depends, HTTPException
 from typing import Any, List
 from datetime import datetime, timedelta
@@ -12,6 +14,8 @@ from backend.models import Project, Document, DeadlineEvent
 from backend.services.notification import NotificationService
 from backend.api.v1.endpoints.projects import get_user_project_ids
 from supabase import create_client, Client
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 supabase: Client = create_client(settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY) if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY else None
@@ -123,22 +127,20 @@ def get_dashboard_stats(
     except HTTPException:
         raise
     except Exception as e:
-        import traceback
-        # Log full traceback for debugging, but don't expose to client
-        traceback.print_exc()
-        print(f"Error fetching dashboard stats: {str(e)}")
+        logger.error(f"Error fetching dashboard stats: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail="Failed to fetch dashboard statistics")
 
 @router.post("/notifications/trigger")
 def trigger_notifications(
-    current_user = Depends(deps.get_current_user),
+    current_user = Depends(deps.require_admin),
 ):
     """
-    Manually trigger deadline check (for testing purposes).
+    Manually trigger deadline check (admin only).
     """
     try:
         service = NotificationService()
         service.check_deadlines()
         return {"message": "Deadline check triggered successfully"}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error triggering notifications: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")

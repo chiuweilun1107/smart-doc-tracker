@@ -14,6 +14,7 @@ import { Loader2, ArrowLeft, FileText, ChevronDown, ChevronRight } from "lucide-
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { toast } from "@/lib/toast"
+import { LoadingState } from "@/components/LoadingState"
 
 export default function ProjectDetailPage() {
     const params = useParams()
@@ -48,26 +49,14 @@ export default function ProjectDetailPage() {
 
     // Auto-select document from URL parameter
     useEffect(() => {
-        console.log('🔍 Auto-select check:', {
-            documentIdParam,
-            documentsCount: documents.length,
-            hasAutoSelected,
-            documentIds: documents.map(d => d.id)
-        })
-
         if (documentIdParam && documents.length > 0 && !hasAutoSelected) {
-            console.log('🎯 Looking for document:', documentIdParam)
             const targetDoc = documents.find(doc => doc.id === documentIdParam)
-            console.log('📄 Found document:', targetDoc)
 
             if (targetDoc) {
-                console.log('✅ Auto-selecting document:', targetDoc.original_filename || targetDoc.filename)
                 setActiveDoc(targetDoc)
                 fetchDocumentEvents(documentIdParam)
                 setIsDocListExpanded(true)
                 setHasAutoSelected(true)
-            } else {
-                console.warn('⚠️ Document not found in list')
             }
         }
     }, [documentIdParam, documents, hasAutoSelected])
@@ -215,19 +204,19 @@ export default function ProjectDetailPage() {
         }
     }
 
-    if (loading) return <div className="p-8"><Loader2 className="animate-spin" /></div>
+    if (loading) return <LoadingState />
     if (!project) return <div className="p-8">找不到專案</div>
 
     return (
-        <div className="container mx-auto py-8 h-screen flex flex-col">
+        <div className="container mx-auto py-8 px-4 md:px-6 min-h-screen flex flex-col">
             {/* Header */}
             <div className="flex items-center mb-6">
-                <Link href="/projects" className="mr-4 p-2 hover:bg-gray-100 rounded-full">
+                <Link href="/projects" className="mr-4 p-2 hover:bg-muted rounded-full">
                     <ArrowLeft className="w-5 h-5" />
                 </Link>
                 <div>
                     <h1 className="text-2xl font-bold">{project.name}</h1>
-                    <p className="text-gray-500 text-sm">{project.description}</p>
+                    <p className="text-muted-foreground text-sm">{project.description}</p>
                 </div>
             </div>
 
@@ -240,30 +229,30 @@ export default function ProjectDetailPage() {
 
                     {/* Document List */}
                     {documents.length > 0 && (
-                        <div ref={docListRef} className="border border-gray-200 rounded-lg overflow-visible bg-white flex-shrink-0">
+                        <div ref={docListRef} className="border border-border rounded-lg overflow-visible bg-card flex-shrink-0">
                             {/* Collapsible Header */}
                             <button
                                 onClick={() => setIsDocListExpanded(!isDocListExpanded)}
-                                className="w-full flex items-center justify-between p-4 hover:bg-gray-50 transition-colors"
+                                className="w-full flex items-center justify-between p-4 hover:bg-muted transition-colors"
                             >
                                 <div className="flex items-center gap-2">
                                     {isDocListExpanded ? (
-                                        <ChevronDown className="w-4 h-4 text-gray-500" />
+                                        <ChevronDown className="w-4 h-4 text-muted-foreground" />
                                     ) : (
-                                        <ChevronRight className="w-4 h-4 text-gray-500" />
+                                        <ChevronRight className="w-4 h-4 text-muted-foreground" />
                                     )}
-                                    <h3 className="text-sm font-semibold text-gray-700">
+                                    <h3 className="text-sm font-semibold text-foreground">
                                         已上傳文件
                                     </h3>
                                 </div>
-                                <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                                <span className="text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                                     {documents.length}
                                 </span>
                             </button>
 
                             {/* Expandable Content */}
                             {isDocListExpanded && (
-                                <div className="border-t border-gray-100 p-3 space-y-2 bg-gray-50/50 max-h-96 overflow-y-auto">
+                                <div className="border-t border-border p-3 space-y-2 bg-muted/50 max-h-96 overflow-y-auto">
                                     {documents.map((doc) => (
                                         <DocumentCard
                                             key={doc.id}
@@ -281,30 +270,30 @@ export default function ProjectDetailPage() {
                     )}
 
                     {/* Member Management */}
-                    <div className="border border-gray-200 rounded-lg bg-white p-4">
+                    <div className="border border-border rounded-lg bg-card p-4">
                         <MemberManager projectId={id} isOwner={isOwner} />
                     </div>
 
                     {activeDoc && (
-                        <div className="flex-1 border rounded-lg bg-white shadow-sm flex flex-col min-h-[400px] max-h-[600px]">
-                            <div className="px-6 py-4 border-b bg-gray-50">
-                                <h3 className="font-semibold text-gray-700 mb-3">文件資訊</h3>
-                                <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
+                        <div className="flex-1 border rounded-lg bg-card shadow-sm flex flex-col min-h-[200px] lg:min-h-[400px] max-h-[600px]">
+                            <div className="px-6 py-4 border-b bg-muted">
+                                <h3 className="font-semibold text-foreground mb-3">文件資訊</h3>
+                                <div className="grid grid-cols-2 gap-2 text-sm text-foreground/80">
                                     <div>
-                                        <span className="font-medium text-gray-500">檔名:</span>
+                                        <span className="font-medium text-muted-foreground">檔名:</span>
                                         <p className="mt-1 truncate">{activeDoc.original_filename || activeDoc.filename || '處理中...'}</p>
                                     </div>
                                     <div>
-                                        <span className="font-medium text-gray-500">格式:</span>
+                                        <span className="font-medium text-muted-foreground">格式:</span>
                                         <p className="mt-1">{activeDoc.file_type?.toUpperCase() || 'N/A'}</p>
                                     </div>
                                     <div className="col-span-2">
-                                        <span className="font-medium text-gray-500">狀態:</span>
+                                        <span className="font-medium text-muted-foreground">狀態:</span>
                                         <span className={
                                             activeDoc.status === 'completed' ? 'ml-2 text-green-600 font-medium' :
                                             activeDoc.status === 'processing' ? 'ml-2 text-amber-600 font-medium' :
                                             activeDoc.status === 'error' ? 'ml-2 text-red-600 font-medium' :
-                                            'ml-2 text-gray-600'
+                                            'ml-2 text-foreground/80'
                                         }>
                                             {activeDoc.status === 'completed' ? '✓ 完成' :
                                              activeDoc.status === 'processing' ? '⏳ 處理中' :
@@ -318,31 +307,31 @@ export default function ProjectDetailPage() {
                             <div className="flex-1 overflow-y-auto p-6">
                                 {activeDoc.status === 'processing' ? (
                                     <div className="flex flex-col items-center justify-center h-full text-center">
-                                        <Loader2 className="w-12 h-12 text-gray-300 mb-4 animate-spin" />
-                                        <p className="text-gray-500 text-sm">正在解析文件內容...</p>
+                                        <Loader2 className="w-12 h-12 text-muted-foreground/50 mb-4 animate-spin" />
+                                        <p className="text-muted-foreground text-sm">正在解析文件內容...</p>
                                     </div>
                                 ) : activeDoc.raw_content ? (
                                     <div className="space-y-4">
                                         <div className="flex items-center justify-between mb-2">
-                                            <h4 className="text-sm font-semibold text-gray-700 flex items-center">
+                                            <h4 className="text-sm font-semibold text-foreground flex items-center">
                                                 <FileText className="w-4 h-4 mr-2" />
                                                 文件內容預覽
                                             </h4>
-                                            <span className="text-xs text-gray-400">
+                                            <span className="text-xs text-muted-foreground">
                                                 {activeDoc.raw_content.length.toLocaleString()} 字元
                                             </span>
                                         </div>
-                                        <div className="bg-gray-50 rounded-lg p-4 border border-gray-200">
-                                            <pre className="text-sm text-gray-700 whitespace-pre-wrap font-sans leading-relaxed">
+                                        <div className="bg-muted rounded-lg p-4 border border-border">
+                                            <pre className="text-sm text-foreground whitespace-pre-wrap font-sans leading-relaxed">
                                                 {activeDoc.raw_content}
                                             </pre>
                                         </div>
                                     </div>
                                 ) : (
                                     <div className="flex flex-col items-center justify-center h-full text-center">
-                                        <FileText className="w-16 h-16 text-gray-300 mb-4" />
-                                        <p className="text-gray-400 text-sm">無法載入文件內容</p>
-                                        <p className="text-xs text-gray-400 mt-2">
+                                        <FileText className="w-16 h-16 text-muted-foreground/50 mb-4" />
+                                        <p className="text-muted-foreground text-sm">無法載入文件內容</p>
+                                        <p className="text-xs text-muted-foreground mt-2">
                                             {activeDoc.status === 'error' ? '文件處理時發生錯誤' : '請稍後再試'}
                                         </p>
                                     </div>
@@ -353,7 +342,7 @@ export default function ProjectDetailPage() {
                 </div>
 
                 {/* Right: AI Events */}
-                <div className="flex flex-col space-y-4 overflow-y-auto pl-2 border-l">
+                <div className="flex flex-col space-y-4 overflow-y-auto pl-2 lg:border-l">
                     <h2 className="font-semibold text-lg flex items-center justify-between">
                         <span>AI 解析結果</span>
                         {activeDoc?.status === "processing" && <span className="text-xs text-amber-500 flex items-center"><Loader2 className="w-3 h-3 mr-1 animate-spin" /> 解析中...</span>}

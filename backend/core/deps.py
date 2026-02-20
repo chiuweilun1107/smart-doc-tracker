@@ -1,10 +1,13 @@
 
+import logging
 from typing import Annotated
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from supabase import create_client, Client
 from backend.core.config import settings
 from backend.schemas.user import CurrentUser
+
+logger = logging.getLogger(__name__)
 
 # Define OAuth2 scheme
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -43,9 +46,27 @@ async def get_current_user(token: Annotated[str, Depends(oauth2_scheme)]) -> Cur
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Auth Error: {e}")
+        logger.error(f"Auth Error: {e}")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Could not validate credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
+
+
+async def require_admin(current_user: CurrentUser = Depends(get_current_user)) -> CurrentUser:
+    """
+    Dependency that checks if the current user is an admin.
+    Admin emails are read from the ADMIN_EMAILS environment variable (comma-separated).
+    """
+    admin_emails = [
+        email.strip().lower()
+        for email in settings.ADMIN_EMAILS.split(",")
+        if email.strip()
+    ]
+    if current_user.email.lower() not in admin_emails:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Admin privileges required",
+        )
+    return current_user

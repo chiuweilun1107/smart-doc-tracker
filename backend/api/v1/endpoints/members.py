@@ -1,50 +1,23 @@
+import logging
+import uuid
+
 from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
 from typing import List
 from backend.core import deps
 from backend.core.config import settings
+from backend.core.permissions import verify_project_access, verify_project_owner
 from backend.schemas.member import MemberInvite, MemberResponse
 from backend.services.email import EmailService
 from supabase import create_client, Client
 from datetime import datetime
-import uuid
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
 supabase: Client = create_client(
     settings.SUPABASE_URL, settings.SUPABASE_SERVICE_ROLE_KEY
 ) if settings.SUPABASE_URL and settings.SUPABASE_SERVICE_ROLE_KEY else None
-
-
-def _verify_project_access(project_id: str, user_id: str) -> dict:
-    """Verify the user is owner or accepted member of the project."""
-    # Check owner
-    project = supabase.table("projects").select("*").eq("id", project_id).single().execute()
-    if not project.data:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    if project.data["owner_id"] == user_id:
-        return project.data
-
-    # Check membership
-    member = supabase.table("project_members") \
-        .select("id") \
-        .eq("project_id", project_id) \
-        .eq("user_id", user_id) \
-        .eq("status", "accepted") \
-        .execute()
-
-    if not member.data:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    return project.data
-
-
-def _verify_project_owner(project_id: str, user_id: str) -> dict:
-    """Verify the user is the owner of the project."""
-    project = supabase.table("projects").select("*").eq("id", project_id).eq("owner_id", user_id).single().execute()
-    if not project.data:
-        raise HTTPException(status_code=403, detail="Only project owner can perform this action")
-    return project.data
 
 
 @router.get("/{project_id}/members", response_model=List[MemberResponse])
@@ -59,7 +32,7 @@ def list_members(
     pid = str(project_id)
     uid = str(current_user.id)
 
-    _verify_project_access(pid, uid)
+    verify_project_access(pid, uid, supabase)
 
     try:
         response = supabase.table("project_members") \
@@ -78,8 +51,8 @@ def list_members(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error listing members: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error listing members: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")
 
 
 @router.post("/{project_id}/members/invite", response_model=MemberResponse)
@@ -96,7 +69,7 @@ def invite_member(
     pid = str(project_id)
     uid = str(current_user.id)
 
-    _verify_project_owner(pid, uid)
+    verify_project_owner(pid, uid, supabase)
 
     email = invite.email.lower()
 
@@ -129,12 +102,12 @@ def invite_member(
     }
 
     if profile.data and len(profile.data) > 0:
-        # User exists — auto-accept
+        # User exists -- auto-accept
         member_data["user_id"] = profile.data[0]["id"]
         member_data["status"] = "accepted"
         member_data["joined_at"] = datetime.utcnow().isoformat()
     else:
-        # User not registered — keep pending
+        # User not registered -- keep pending
         member_data["status"] = "pending"
 
     try:
@@ -146,7 +119,7 @@ def invite_member(
                 result["full_name"] = profile.data[0].get("full_name")
 
             # Send invitation email synchronously for immediate feedback
-            project = _verify_project_owner(pid, uid)
+            project = verify_project_owner(pid, uid, supabase)
             inviter_name = current_user.email.split("@")[0]
             inviter_profile = supabase.table("profiles").select("full_name").eq("id", uid).execute()
             if inviter_profile.data and inviter_profile.data[0].get("full_name"):
@@ -173,10 +146,10 @@ def invite_member(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error inviting member: {e}")
+        logger.error(f"Error inviting member: {e}")
         if "uq_project_member" in str(e):
             raise HTTPException(status_code=400, detail="This email has already been invited")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")
 
 
 @router.post("/{project_id}/members/{member_id}/resend-invite")
@@ -192,7 +165,7 @@ def resend_invitation(
     pid = str(project_id)
     uid = str(current_user.id)
 
-    project = _verify_project_owner(pid, uid)
+    project = verify_project_owner(pid, uid, supabase)
 
     # Get the member
     member = supabase.table("project_members") \
@@ -246,7 +219,7 @@ def remove_member(
     pid = str(project_id)
     uid = str(current_user.id)
 
-    _verify_project_owner(pid, uid)
+    verify_project_owner(pid, uid, supabase)
 
     try:
         # Verify the member exists in this project
@@ -266,5 +239,5 @@ def remove_member(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error removing member: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error removing member: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")

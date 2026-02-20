@@ -90,7 +90,7 @@ class RedisCache:
             return 0
 
         try:
-            keys = self.client.keys(pattern)
+            keys = list(self.client.scan_iter(match=pattern))
             if keys:
                 deleted = self.client.delete(*keys)
                 logger.debug(f"🗑️ Cache DELETE pattern '{pattern}': {deleted} keys")

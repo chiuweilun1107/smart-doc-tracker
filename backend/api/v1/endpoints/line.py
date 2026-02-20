@@ -1,4 +1,6 @@
 
+import logging
+
 from fastapi import APIRouter, Header, Request, HTTPException, Depends
 from linebot import WebhookParser
 from linebot.exceptions import InvalidSignatureError
@@ -8,6 +10,8 @@ from sqlalchemy.orm import Session
 from backend.core.config import settings
 from backend.core.database import get_db
 from backend.services.line_bot import LineBotService
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 line_bot_service = LineBotService()
@@ -25,7 +29,7 @@ async def line_webhook(
 ):
     if not parser:
         raise HTTPException(status_code=500, detail="Line Channel Secret not configured")
-        
+
     if not x_line_signature:
         raise HTTPException(status_code=400, detail="Missing X-Line-Signature header")
 
@@ -33,23 +37,23 @@ async def line_webhook(
     body_bytes = await request.body()
     body = body_bytes.decode('utf-8')
 
-    print(f"Received Webhook Request. Signature: {x_line_signature}")
-    print(f"Body: {body}")
+    logger.debug(f"Received Webhook Request. Signature: {x_line_signature}")
+    logger.debug(f"Body: {body}")
 
     try:
         events = parser.parse(body, x_line_signature)
     except InvalidSignatureError:
-        print("Invalid Signature Error")
+        logger.warning("Invalid Signature Error")
         raise HTTPException(status_code=400, detail="Invalid signature")
     except Exception as e:
-        print(f"Error parsing events: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error parsing events: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")
 
-    print(f"Parsed {len(events)} events")
+    logger.debug(f"Parsed {len(events)} events")
 
     for event in events:
         try:
-            print(f"Handling event: {event}")
+            logger.debug(f"Handling event: {event}")
             if isinstance(event, FollowEvent):
                 line_bot_service.handle_follow(db, event)
             elif isinstance(event, MessageEvent) and isinstance(event.message, TextMessage):
@@ -57,9 +61,9 @@ async def line_webhook(
             elif isinstance(event, PostbackEvent):
                 line_bot_service.handle_postback(db, event)
             else:
-                print(f"Unhandled event type: {type(event)}")
+                logger.debug(f"Unhandled event type: {type(event)}")
         except Exception as e:
-            print(f"Error handling event: {e}")
+            logger.error(f"Error handling event: {e}")
             # Don't raise error to Line server, just log it
-            
+
     return "OK"

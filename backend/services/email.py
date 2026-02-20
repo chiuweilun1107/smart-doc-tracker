@@ -143,11 +143,14 @@ class EmailService:
         project_name: str,
         inviter_name: str,
         is_existing_user: bool = False,
-        app_url: str = "https://5-78-118-41.sslip.io",
+        app_url: str = None,
     ) -> bool:
         if not self.enabled:
             logger.info(f"[Email SKIP] {self.provider} not configured. Would send invitation to {to_email}")
             return False
+
+        if app_url is None:
+            app_url = settings.APP_URL
 
         subject = f"{inviter_name} 邀請你加入專案「{project_name}」"
 

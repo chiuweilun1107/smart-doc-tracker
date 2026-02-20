@@ -1,12 +1,17 @@
 
+import logging
+import uuid
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from typing import List
 from backend.core import deps
 from backend.core.config import settings
 from backend.core.cache import cache
+from backend.core.permissions import verify_project_access
 from backend.schemas.project import Project, ProjectCreate, ProjectUpdate, ProjectWithCounts
 from supabase import create_client, Client
-import uuid
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
@@ -103,8 +108,8 @@ def read_projects(
 
         return result
     except Exception as e:
-        print(f"Error fetching projects: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching projects: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")
 
 @router.post("", response_model=Project)
 def create_project(
@@ -119,7 +124,7 @@ def create_project(
         raise HTTPException(status_code=500, detail="Database connection error")
 
     try:
-        project_data = project_in.dict(exclude_none=True)
+        project_data = project_in.model_dump(exclude_none=True)
         project_data["id"] = str(uuid.uuid4())
         project_data["owner_id"] = str(current_user.id)
 
@@ -133,30 +138,11 @@ def create_project(
         else:
             raise HTTPException(status_code=500, detail="Failed to create project")
 
+    except HTTPException:
+        raise
     except Exception as e:
-        print(f"Error creating project: {e}")
-        raise HTTPException(status_code=400, detail=str(e))
-
-def verify_project_access(project_id: str, user_id: str) -> dict:
-    """Verify the user is owner or accepted member. Returns project data."""
-    project = supabase.table("projects").select("*").eq("id", project_id).single().execute()
-    if not project.data:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    if project.data["owner_id"] == user_id:
-        return project.data
-
-    member = supabase.table("project_members") \
-        .select("id") \
-        .eq("project_id", project_id) \
-        .eq("user_id", user_id) \
-        .eq("status", "accepted") \
-        .execute()
-
-    if not member.data:
-        raise HTTPException(status_code=404, detail="Project not found")
-
-    return project.data
+        logger.error(f"Error creating project: {e}")
+        raise HTTPException(status_code=400, detail="伺服器內部錯誤，請稍後再試")
 
 
 @router.get("/{id}", response_model=Project)
@@ -168,11 +154,11 @@ def read_project(
     Get project by ID (owner or member).
     """
     try:
-        return verify_project_access(str(id), str(current_user.id))
+        return verify_project_access(str(id), str(current_user.id), supabase)
     except HTTPException:
         raise
     except Exception as e:
-         print(f"Error msg: {str(e)}")
+         logger.error(f"Error fetching project: {e}")
          raise HTTPException(status_code=404, detail="Project not found")
 
 @router.put("/{id}", response_model=Project)
@@ -189,11 +175,11 @@ def update_project(
 
     try:
         # Verify ownership
-        existing = supabase.table("projects").select("id").eq("id", str(id)).eq("owner_id", current_user.id).single().execute()
+        existing = supabase.table("projects").select("id").eq("id", str(id)).eq("owner_id", str(current_user.id)).single().execute()
         if not existing.data:
             raise HTTPException(status_code=404, detail="Project not found")
 
-        update_data = project_in.dict(exclude_none=True)
+        update_data = project_in.model_dump(exclude_none=True)
         if not update_data:
             raise HTTPException(status_code=400, detail="No fields to update")
 
@@ -210,8 +196,8 @@ def update_project(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error updating project: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error updating project: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")
 
 @router.delete("/{id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_project(
@@ -226,7 +212,7 @@ def delete_project(
 
     try:
         # Verify ownership
-        existing = supabase.table("projects").select("id").eq("id", str(id)).eq("owner_id", current_user.id).single().execute()
+        existing = supabase.table("projects").select("id").eq("id", str(id)).eq("owner_id", str(current_user.id)).single().execute()
         if not existing.data:
             raise HTTPException(status_code=404, detail="Project not found")
 
@@ -241,8 +227,8 @@ def delete_project(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error deleting project: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error deleting project: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")
 
 @router.get("/{id}/documents")
 def get_project_documents(
@@ -257,7 +243,7 @@ def get_project_documents(
 
     try:
         # Verify project access (owner or member)
-        verify_project_access(str(id), str(current_user.id))
+        verify_project_access(str(id), str(current_user.id), supabase)
 
         # Get all documents for this project
         response = supabase.table("documents").select("*").eq("project_id", str(id)).order("created_at", desc=True).execute()
@@ -267,5 +253,5 @@ def get_project_documents(
     except HTTPException:
         raise
     except Exception as e:
-        print(f"Error fetching documents: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error fetching documents: {e}")
+        raise HTTPException(status_code=500, detail="伺服器內部錯誤，請稍後再試")

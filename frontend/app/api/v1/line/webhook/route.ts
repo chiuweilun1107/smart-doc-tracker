@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 
-const BACKEND_URL = process.env.BACKEND_WEBHOOK_URL || "http://5.78.118.41:8000/api/v1/line/webhook"
+const BACKEND_URL = process.env.BACKEND_WEBHOOK_URL || (process.env.NEXT_PUBLIC_API_URL?.replace('/api/v1', '') + '/api/v1/line/webhook') || ''
 
 export async function POST(request: NextRequest) {
     try {

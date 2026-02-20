@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Loader2, FileText, CheckCircle2, ArrowRight, Eye, EyeOff } from "lucide-react"
+import { translateError } from "@/lib/error-messages"
 
 const REMEMBER_KEY = "sdt_remembered_email"
 
@@ -29,6 +30,26 @@ export default function LoginPage() {
             setRememberMe(true)
         }
     }, [])
+
+    const handleForgotPassword = async () => {
+        if (!email) {
+            setError("請先輸入 Email")
+            return
+        }
+        try {
+            const { error } = await supabase.auth.resetPasswordForEmail(email, {
+                redirectTo: `${window.location.origin}/login`,
+            })
+            if (error) {
+                setError(error.message)
+            } else {
+                setError(null)
+                alert("密碼重設信已發送，請檢查信箱")
+            }
+        } catch (err: any) {
+            setError(err.message || "發送失敗，請稍後再試")
+        }
+    }
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault()
@@ -51,7 +72,7 @@ export default function LoginPage() {
             router.push("/dashboard")
         } catch (err: any) {
             console.error("Login failed", err)
-            setError(err.message || "登入失敗，請檢查帳號密碼")
+            setError(translateError(err.message) || "登入失敗，請檢查帳號密碼")
         } finally {
             setLoading(false)
         }
@@ -70,26 +91,26 @@ export default function LoginPage() {
 
                 <div className="z-10 space-y-8 max-w-lg">
                     <h1 className="text-4xl font-bold leading-tight">
-                        Never Miss a Government Tender Deadline Again.
+                        再也不錯過政府標案截止日
                     </h1>
                     <ul className="space-y-4 text-zinc-300">
                         <li className="flex items-start gap-3">
                             <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0" />
-                            <span>AI-powered document parsing for instant insights.</span>
+                            <span>AI 智能文件解析，即時洞察關鍵資訊。</span>
                         </li>
                         <li className="flex items-start gap-3">
                             <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0" />
-                            <span>Real-time Line notifications for critical updates.</span>
+                            <span>LINE 即時通知，掌握重要更新。</span>
                         </li>
                         <li className="flex items-start gap-3">
                             <CheckCircle2 className="w-6 h-6 text-blue-500 shrink-0" />
-                            <span>Secure, reliable, and designed for efficiency.</span>
+                            <span>安全可靠，專為高效工作流程設計。</span>
                         </li>
                     </ul>
                 </div>
 
                 <div className="z-10 text-sm text-zinc-500">
-                    &copy; 2024 Smart Doc Tracker. All rights reserved.
+                    &copy; {new Date().getFullYear()} Smart Doc Tracker. 版權所有。
                 </div>
 
                 {/* Abstract Background */}
@@ -101,10 +122,10 @@ export default function LoginPage() {
                 <div className="w-full max-w-md space-y-8">
                     <div className="text-center lg:text-left">
                         <h2 className="text-3xl font-bold tracking-tight text-slate-900 dark:text-white">
-                            Welcome back
+                            歡迎回來
                         </h2>
                         <p className="mt-2 text-sm text-slate-600 dark:text-slate-400">
-                            Please sign in to your account
+                            請登入您的帳號
                         </p>
                     </div>
 
@@ -124,10 +145,14 @@ export default function LoginPage() {
 
                         <div className="space-y-2">
                             <div className="flex items-center justify-between">
-                                <Label htmlFor="password">Password</Label>
-                                <a href="#" className="text-sm font-medium text-blue-600 hover:text-blue-500">
-                                    Forgot password?
-                                </a>
+                                <Label htmlFor="password">密碼</Label>
+                                <button
+                                    type="button"
+                                    onClick={handleForgotPassword}
+                                    className="text-sm font-medium text-blue-600 hover:text-blue-500"
+                                >
+                                    忘記密碼？
+                                </button>
                             </div>
                             <div className="relative">
                                 <Input
@@ -177,20 +202,20 @@ export default function LoginPage() {
                             {loading ? (
                                 <>
                                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                    Signing in...
+                                    登入中...
                                 </>
                             ) : (
                                 <>
-                                    Sign in <ArrowRight className="ml-2 h-4 w-4" />
+                                    登入 <ArrowRight className="ml-2 h-4 w-4" />
                                 </>
                             )}
                         </Button>
                     </form>
 
                     <p className="px-8 text-center text-sm text-slate-500 dark:text-slate-400">
-                        Don't have an account?{" "}
+                        還沒有帳號？{" "}
                         <Link href="/signup" className="font-medium text-blue-600 hover:text-blue-500 underline underline-offset-4">
-                            Sign up
+                            註冊
                         </Link>
                     </p>
                 </div>

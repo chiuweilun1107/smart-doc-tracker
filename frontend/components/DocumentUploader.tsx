@@ -78,15 +78,29 @@ export function DocumentUploader({ projectId, onUploadSuccess }: DocumentUploade
         }
     }, [projectId, onUploadSuccess])
 
+    const onDropRejected = useCallback((fileRejections: any[]) => {
+        fileRejections.forEach((rejection) => {
+            const { file, errors } = rejection
+            const errorMessages = errors.map((e: any) => {
+                if (e.code === 'file-too-large') return `「${file.name}」超過 10MB 大小限制`
+                if (e.code === 'file-invalid-type') return `「${file.name}」格式不支援`
+                return e.message
+            })
+            errorMessages.forEach((msg: string) => toast(msg, "error"))
+        })
+    }, [])
+
     const { getRootProps, getInputProps, isDragActive } = useDropzone({
         onDrop,
+        onDropRejected,
         accept: {
             'application/pdf': ['.pdf'],
             'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
             'application/msword': ['.doc']
         },
         multiple: true,
-        maxFiles: 10
+        maxFiles: 10,
+        maxSize: 10 * 1024 * 1024, // 10MB
     })
 
     const isUploading = uploadQueue.some(item => item.status === 'uploading')
@@ -97,7 +111,7 @@ export function DocumentUploader({ projectId, onUploadSuccess }: DocumentUploade
                 {...getRootProps()}
                 className={cn(
                     "border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors",
-                    isDragActive ? "border-primary bg-primary/5" : "border-gray-200 hover:border-primary/50",
+                    isDragActive ? "border-primary bg-primary/5" : "border-border hover:border-primary/50",
                     isUploading ? "opacity-50 pointer-events-none" : ""
                 )}
             >
@@ -106,13 +120,13 @@ export function DocumentUploader({ projectId, onUploadSuccess }: DocumentUploade
                     {isUploading ? (
                         <Loader2 className="w-10 h-10 text-primary animate-spin" />
                     ) : (
-                        <UploadCloud className="w-10 h-10 text-gray-400" />
+                        <UploadCloud className="w-10 h-10 text-muted-foreground" />
                     )}
-                    <div className="text-sm font-medium text-gray-700">
+                    <div className="text-sm font-medium text-foreground">
                         {isUploading ? "上傳與解析中..." : isDragActive ? "放開以開始上傳" : "點擊或拖曳文件至此"}
                     </div>
                     {!isUploading && (
-                        <p className="text-xs text-gray-500">支援 PDF、DOCX、DOC 格式，可同時上傳多個文件 (每個最大 10MB)</p>
+                        <p className="text-xs text-muted-foreground">支援 PDF、DOCX、DOC 格式，可同時上傳多個文件 (每個最大 10MB)</p>
                     )}
                 </div>
             </div>
@@ -123,11 +137,11 @@ export function DocumentUploader({ projectId, onUploadSuccess }: DocumentUploade
                     {uploadQueue.map((item, index) => (
                         <div
                             key={index}
-                            className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200"
+                            className="flex items-center justify-between p-3 bg-muted rounded-lg border border-border"
                         >
                             <div className="flex items-center space-x-3 flex-1 min-w-0">
-                                <File className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                                <span className="text-sm text-gray-700 truncate">{item.file.name}</span>
+                                <File className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                                <span className="text-sm text-foreground truncate">{item.file.name}</span>
                             </div>
                             <div className="flex-shrink-0 ml-3">
                                 {item.status === 'uploading' && (

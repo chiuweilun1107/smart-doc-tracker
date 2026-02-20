@@ -3,10 +3,13 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import Link from "next/link"
 import { apiClient } from "@/lib/api"
+import { supabase } from "@/lib/supabase"
 import { StatCard } from "@/components/StatCard"
 import { RecentTaskList } from "@/components/RecentTaskList"
 import { AlertTriangle, Clock, FileText, LayoutDashboard } from "lucide-react"
+import { LoadingState } from "@/components/LoadingState"
 
 export default function DashboardPage() {
     const router = useRouter()
@@ -19,26 +22,19 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         try {
-            console.log('📊 Fetching dashboard stats...')
             const res = await apiClient.get('/dashboard/stats')
-            console.log('✅ Dashboard stats loaded:', res.data)
             setStats(res.data)
         } catch (error: any) {
-            console.error("❌ Failed to fetch dashboard stats:", error)
+            console.error("Failed to fetch dashboard stats:", error)
 
-            // If 401, user needs to login - let middleware handle it or redirect manually
+            // If 401, user needs to login - sign out and redirect
             if (error.response?.status === 401) {
-                console.warn('🔒 Not authenticated, clearing session and redirecting to login...')
-                // Clear any stale session data
-                localStorage.clear()
-                sessionStorage.clear()
-                // Redirect immediately
+                await supabase.auth.signOut()
                 router.push('/login')
                 return
             }
 
             // For other errors, show fallback data
-            console.log('📝 Using fallback data (empty stats)')
             setStats({
                 total_projects: 0,
                 total_documents: 0,
@@ -52,11 +48,11 @@ export default function DashboardPage() {
     }
 
     if (loading) {
-        return <div className="p-8">載入中...</div>
+        return <LoadingState />
     }
 
     return (
-        <div className="container mx-auto py-8 space-y-8">
+        <div className="container mx-auto py-8 px-4 md:px-6 space-y-8">
             <div>
                 <h1 className="text-3xl font-bold flex items-center">
                     <LayoutDashboard className="mr-2" />
@@ -105,14 +101,14 @@ export default function DashboardPage() {
                 <div className="space-y-4">
                     <h2 className="text-xl font-semibold">快速操作</h2>
                     <div className="p-4 border rounded-xl bg-card text-card-foreground shadow-sm">
-                        <p className="text-sm text-muted-foreground mb-4 font-medium uppercase tracking-wider">Quick Actions</p>
+                        <p className="text-sm text-muted-foreground mb-4 font-medium uppercase tracking-wider">快速操作</p>
                         <div className="space-y-2">
-                            <a href="/projects" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
+                            <Link href="/projects" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
                                 前往專案列表
-                            </a>
-                            <a href="/settings" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
+                            </Link>
+                            <Link href="/settings" className="block w-full py-2 px-4 bg-background border rounded-lg hover:bg-accent hover:text-accent-foreground text-center text-sm transition-colors">
                                 系統設定
-                            </a>
+                            </Link>
                             {/* Add more shortcuts */}
                         </div>
                     </div>

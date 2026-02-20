@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -74,12 +75,12 @@ export function ProjectCard({
                             </DropdownMenu>
                         </div>
                     </div>
-                    <p className="text-sm text-gray-500 line-clamp-2 min-h-[40px]">
+                    <p className="text-sm text-muted-foreground line-clamp-2 min-h-[40px]">
                         {description || "無描述"}
                     </p>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex space-x-4 text-sm text-gray-600">
+                    <div className="flex space-x-4 text-sm text-foreground/80">
                         <div className="flex items-center">
                             <FileText className="w-4 h-4 mr-1" />
                             <span>{docCount} 文件</span>
@@ -90,15 +91,15 @@ export function ProjectCard({
                         </div>
                     </div>
                     {formattedDate && (
-                        <p className="text-xs text-gray-400 mt-2">建立於 {formattedDate}</p>
+                        <p className="text-xs text-muted-foreground mt-2">建立於 {formattedDate}</p>
                     )}
                 </CardContent>
-                <CardFooter className="pt-2 border-t bg-gray-50/50">
+                <CardFooter className="pt-2 border-t bg-muted/50">
                     <Button variant="ghost" className="w-full justify-between group" asChild>
-                        <a href={`/projects/${id}`}>
+                        <Link href={`/projects/${id}`}>
                             查看詳情
                             <ArrowRight className="w-4 h-4 ml-2 group-hover:translate-x-1 transition-transform" />
-                        </a>
+                        </Link>
                     </Button>
                 </CardFooter>
             </Card>

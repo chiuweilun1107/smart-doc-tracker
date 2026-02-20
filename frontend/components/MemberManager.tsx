@@ -111,10 +111,10 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
     return (
         <div className="space-y-4">
             <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
                     <Users className="w-4 h-4" />
                     專案成員
-                    <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+                    <span className="text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                         {members.length}
                     </span>
                 </h3>
@@ -136,7 +136,7 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
                             <form onSubmit={handleInvite}>
                                 <div className="py-4">
                                     <div className="flex items-center gap-2">
-                                        <Mail className="w-4 h-4 text-gray-400" />
+                                        <Mail className="w-4 h-4 text-muted-foreground" />
                                         <Input
                                             type="email"
                                             placeholder="member@example.com"
@@ -173,10 +173,10 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
 
             {loading ? (
                 <div className="flex justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-gray-400" />
+                    <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                 </div>
             ) : members.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">
+                <p className="text-sm text-muted-foreground text-center py-4">
                     尚無成員，點擊「邀請成員」開始新增。
                 </p>
             ) : (
@@ -184,18 +184,18 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
                     {members.map((member) => (
                         <div
                             key={member.id}
-                            className="flex items-center justify-between px-3 py-2 bg-gray-50 rounded-lg border border-gray-100"
+                            className="flex items-center justify-between px-3 py-2 bg-muted rounded-lg border border-border"
                         >
                             <div className="flex items-center gap-3 min-w-0">
                                 <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 text-sm font-medium flex-shrink-0">
                                     {(member.full_name || member.email)[0].toUpperCase()}
                                 </div>
                                 <div className="min-w-0">
-                                    <p className="text-sm font-medium text-gray-700 truncate">
+                                    <p className="text-sm font-medium text-foreground truncate">
                                         {member.full_name || member.email}
                                     </p>
                                     {member.full_name && (
-                                        <p className="text-xs text-gray-400 truncate">{member.email}</p>
+                                        <p className="text-xs text-muted-foreground truncate">{member.email}</p>
                                     )}
                                 </div>
                             </div>
@@ -210,7 +210,7 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
                                     <button
                                         onClick={() => handleResend(member.id, member.email)}
                                         disabled={resendingId === member.id}
-                                        className="text-gray-400 hover:text-blue-500 transition-colors p-1 disabled:opacity-50"
+                                        className="text-muted-foreground hover:text-blue-500 transition-colors p-1 disabled:opacity-50"
                                         title="重寄邀請信"
                                     >
                                         {resendingId === member.id ? (
@@ -223,7 +223,7 @@ export function MemberManager({ projectId, isOwner }: MemberManagerProps) {
                                 {isOwner && (
                                     <button
                                         onClick={() => handleRemove(member.id, member.email)}
-                                        className="text-gray-400 hover:text-red-500 transition-colors p-1"
+                                        className="text-muted-foreground hover:text-red-500 transition-colors p-1"
                                         title="移除成員"
                                     >
                                         <X className="w-3.5 h-3.5" />

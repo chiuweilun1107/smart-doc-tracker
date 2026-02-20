@@ -71,7 +71,7 @@ export function LineBindingCard() {
         return (
             <Card>
                 <CardContent className="h-40 flex items-center justify-center">
-                    <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
+                    <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
                 </CardContent>
             </Card>
         )
@@ -114,7 +114,7 @@ export function LineBindingCard() {
                                 {botName && <>「{botName}」</>}
                                 發送到期提醒給您。
                             </p>
-                            <p className="text-xs text-gray-500 mt-2">
+                            <p className="text-xs text-muted-foreground mt-2">
                                 LINE User ID: {status?.line_user_id?.slice(0, 10)}...
                             </p>
                         </div>
@@ -139,11 +139,11 @@ export function LineBindingCard() {
                                 <span className="flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white text-xs font-bold">1</span>
                                 <span className="text-sm font-medium">
                                     加入 LINE Bot 好友
-                                    {botName && <span className="text-gray-400 font-normal">（{botName}）</span>}
+                                    {botName && <span className="text-muted-foreground font-normal">（{botName}）</span>}
                                 </span>
                             </div>
-                            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-gray-50 rounded-lg border">
-                                <div className="bg-white p-2 rounded-lg shadow-sm border">
+                            <div className="flex flex-col sm:flex-row items-center gap-4 p-4 bg-muted rounded-lg border">
+                                <div className="bg-background p-2 rounded-lg shadow-sm border">
                                     <QRCodeSVG
                                         value={addFriendUrl}
                                         size={120}
@@ -151,11 +151,11 @@ export function LineBindingCard() {
                                     />
                                 </div>
                                 <div className="space-y-2 text-center sm:text-left">
-                                    <p className="text-sm text-gray-600">
+                                    <p className="text-sm text-foreground/80">
                                         用 LINE 掃描 QR Code 加入好友
                                     </p>
-                                    <p className="text-xs text-gray-400">
-                                        或搜尋 ID: <code className="bg-gray-200 px-1.5 py-0.5 rounded font-mono">{botId}</code>
+                                    <p className="text-xs text-muted-foreground">
+                                        或搜尋 ID: <code className="bg-muted px-1.5 py-0.5 rounded font-mono">{botId}</code>
                                     </p>
                                     <a
                                         href={addFriendUrl}
@@ -214,8 +214,8 @@ export function LineBindingCard() {
                                     </Button>
                                 </div>
                             ) : (
-                                <div className="p-4 bg-gray-50 rounded-lg border space-y-3">
-                                    <p className="text-sm text-gray-600">
+                                <div className="p-4 bg-muted rounded-lg border space-y-3">
+                                    <p className="text-sm text-foreground/80">
                                         加入好友後，點擊下方按鈕產生驗證碼，再將驗證碼傳送給 LINE Bot 即可完成綁定。
                                     </p>
                                     <Button

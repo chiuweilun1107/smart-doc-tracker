@@ -46,9 +46,13 @@ export async function middleware(request: NextRequest) {
 
     // Redirect authenticated users away from login/signup
     if (user && (request.nextUrl.pathname === '/login' || request.nextUrl.pathname === '/signup')) {
-        const url = request.nextUrl.clone()
-        url.pathname = '/dashboard'
-        return NextResponse.redirect(url)
+        // If invite-related params exist, don't redirect (allow account switch or invite viewing)
+        const hasInviteParam = request.nextUrl.searchParams.has('invite') || request.nextUrl.searchParams.has('email')
+        if (!hasInviteParam) {
+            const url = request.nextUrl.clone()
+            url.pathname = '/dashboard'
+            return NextResponse.redirect(url)
+        }
     }
 
     return supabaseResponse

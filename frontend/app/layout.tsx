@@ -9,7 +9,7 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: "Smart Doc Tracker",
-  description: "Never miss a government tender deadline again.",
+  description: "智能文件期限追蹤系統 — 再也不錯過政府標案截止日",
 };
 
 export default function RootLayout({

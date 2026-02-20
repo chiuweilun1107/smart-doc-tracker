@@ -1,5 +1,6 @@
 
 import os
+from pydantic import computed_field
 from pydantic_settings import BaseSettings
 from dotenv import load_dotenv
 
@@ -56,15 +57,28 @@ class Settings(BaseSettings):
     REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
     CACHE_TTL: int = int(os.getenv("CACHE_TTL", "300"))  # Default 5 minutes
 
-    # CORS Settings
-    CORS_ORIGINS: list[str] = [
-        "http://localhost:3000",
-        "http://localhost:3001",
-        "http://127.0.0.1:3000",
-        "http://127.0.0.1:3001",
-        "https://5-78-118-41.sslip.io",
-        "http://5.78.118.41:3000",
-    ]
+    # App URL (used in emails, invitations, etc.)
+    APP_URL: str = os.getenv("APP_URL", "https://5-78-118-41.sslip.io")
+
+    # Admin Settings
+    ADMIN_EMAILS: str = os.getenv("ADMIN_EMAILS", "chiuweilun1107@gmail.com")
+
+    # CORS Settings (comma-separated string from env, fallback to hardcoded defaults)
+    CORS_ORIGINS_STR: str = os.getenv("CORS_ORIGINS", "")
+
+    @computed_field
+    @property
+    def CORS_ORIGINS(self) -> list[str]:
+        if self.CORS_ORIGINS_STR:
+            return [origin.strip() for origin in self.CORS_ORIGINS_STR.split(",") if origin.strip()]
+        return [
+            "http://localhost:3000",
+            "http://localhost:3001",
+            "http://127.0.0.1:3000",
+            "http://127.0.0.1:3001",
+            "https://5-78-118-41.sslip.io",
+            "http://5.78.118.41:3000",
+        ]
 
     class Config:
         case_sensitive = True

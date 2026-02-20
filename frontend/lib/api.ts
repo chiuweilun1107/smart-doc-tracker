@@ -13,17 +13,8 @@ export const apiClient = axios.create({
 apiClient.interceptors.request.use(async (config) => {
     const { data: { session } } = await supabase.auth.getSession();
 
-    console.log('🔐 API Request Interceptor:', {
-        url: config.url,
-        hasSession: !!session,
-        hasToken: !!session?.access_token,
-        tokenPreview: session?.access_token ? session.access_token.substring(0, 20) + '...' : 'No token'
-    });
-
     if (session?.access_token) {
         config.headers.Authorization = `Bearer ${session.access_token}`;
-    } else {
-        console.warn('⚠️ No session token available!');
     }
 
     return config;

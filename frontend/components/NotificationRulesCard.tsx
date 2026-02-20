@@ -19,6 +19,12 @@ type NotificationRule = {
     channels: string[]
 }
 
+const severityLabel: Record<string, string> = {
+    info: "一般",
+    warning: "警告",
+    critical: "緊急",
+}
+
 export function NotificationRulesCard() {
     const [rules, setRules] = useState<NotificationRule[]>([])
     const [loading, setLoading] = useState(true)
@@ -126,7 +132,7 @@ export function NotificationRulesCard() {
             <CardContent className="space-y-6">
 
                 {/* Add New Rule Form */}
-                <div className="p-4 bg-gray-50 rounded-lg border space-y-4">
+                <div className="p-4 bg-muted rounded-lg border space-y-4">
                     <div className="flex items-end gap-4">
                         <div className="space-y-2 flex-1">
                             <Label>提前天數</Label>
@@ -144,22 +150,22 @@ export function NotificationRulesCard() {
                                 value={newSeverity}
                                 onChange={(e) => setNewSeverity(e.target.value)}
                             >
-                                <option value="info">Info</option>
-                                <option value="warning">Warning</option>
-                                <option value="critical">Critical</option>
+                                <option value="info">一般</option>
+                                <option value="warning">警告</option>
+                                <option value="critical">緊急</option>
                             </select>
                         </div>
                     </div>
                     <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <Label className="text-sm text-gray-500">通知管道：</Label>
+                            <Label className="text-sm text-muted-foreground">通知管道：</Label>
                             <button
                                 type="button"
                                 onClick={() => toggleChannel("line")}
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                                     newChannels.includes("line")
                                         ? "bg-green-50 border-green-300 text-green-700"
-                                        : "bg-gray-50 border-gray-200 text-gray-400"
+                                        : "bg-muted border-border text-muted-foreground"
                                 }`}
                             >
                                 <MessageSquare className="w-3 h-3" />
@@ -171,7 +177,7 @@ export function NotificationRulesCard() {
                                 className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-xs font-medium border transition-colors ${
                                     newChannels.includes("email")
                                         ? "bg-blue-50 border-blue-300 text-blue-700"
-                                        : "bg-gray-50 border-gray-200 text-gray-400"
+                                        : "bg-muted border-border text-muted-foreground"
                                 }`}
                             >
                                 <Mail className="w-3 h-3" />
@@ -188,21 +194,21 @@ export function NotificationRulesCard() {
                 {/* Rules List */}
                 <div className="space-y-2">
                     {loading ? (
-                        <div className="text-center py-4 text-gray-500">載入中...</div>
+                        <div className="text-center py-4 text-muted-foreground">載入中...</div>
                     ) : rules.length === 0 ? (
-                        <div className="text-center py-4 text-gray-500">尚無設定規則</div>
+                        <div className="text-center py-4 text-muted-foreground">尚無設定規則</div>
                     ) : (
                         rules.map((rule) => (
-                            <div key={rule.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-gray-50 transition-colors">
+                            <div key={rule.id} className="flex items-center justify-between p-3 border rounded-md hover:bg-muted transition-colors">
                                 <div className="flex items-center gap-4">
                                     <div className="font-medium text-lg w-12 text-center">{rule.days_before}</div>
-                                    <div className="text-sm text-gray-500">天前通知</div>
+                                    <div className="text-sm text-muted-foreground">天前通知</div>
                                     <Badge className={`${getSeverityColor(rule.severity)} text-white border-0`}>
-                                        {rule.severity.toUpperCase()}
+                                        {severityLabel[rule.severity] || rule.severity}
                                     </Badge>
                                     {getChannelIcons(rule.channels)}
                                 </div>
-                                <Button variant="ghost" size="sm" onClick={() => handleDeleteRule(rule.id)} className="text-gray-400 hover:text-red-500">
+                                <Button variant="ghost" size="sm" onClick={() => handleDeleteRule(rule.id)} className="text-muted-foreground hover:text-red-500">
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
                             </div>

@@ -134,7 +134,10 @@ class NotificationService:
                 break
 
         # Overdue: notify daily via all channels from any active rule
+        # Stop notifying if overdue more than 30 days
         if days_left < 0:
+            if days_left < -30:
+                return
             for rule in rules:
                 rule_channels = rule.channels if rule.channels else ["line", "email"]
                 channels.update(rule_channels)
@@ -144,21 +147,27 @@ class NotificationService:
         if not channels:
             return
 
-        # Deduplicate: check if already notified today for this event+user
+        # Deduplicate per channel: check which channels already sent today
         today_start = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
-        existing = db.query(NotificationLog).filter(
-            NotificationLog.user_id == user.id,
-            NotificationLog.event_id == event.id,
-            NotificationLog.sent_at >= today_start,
-            NotificationLog.status == "sent",
-        ).first()
+        already_sent_channels = set()
+        for ch in channels:
+            existing = db.query(NotificationLog).filter(
+                NotificationLog.user_id == user.id,
+                NotificationLog.event_id == event.id,
+                NotificationLog.notification_type == ch,
+                NotificationLog.sent_at >= today_start,
+                NotificationLog.status == "sent",
+            ).first()
+            if existing:
+                already_sent_channels.add(ch)
 
-        if existing:
-            logger.debug(f"Already notified {user.email} for event {event.id} today")
+        remaining_channels = channels - already_sent_channels
+        if not remaining_channels:
+            logger.debug(f"Already notified {user.email} for event {event.id} today on all channels")
             return
 
-        # Send notifications via selected channels
-        self._send_to_user(db, user, event, project, days_left, channels)
+        # Send notifications via remaining channels only
+        self._send_to_user(db, user, event, project, days_left, remaining_channels)
 
     def _send_to_user(
         self,

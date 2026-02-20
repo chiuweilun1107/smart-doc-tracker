@@ -29,7 +29,14 @@ def accept_pending_invitations(user_id: str, email: str):
             return
 
         from backend.services.email import EmailService
-        email_service = EmailService()
+        from backend.core.database import SessionLocal
+        db = SessionLocal()
+        try:
+            email_service = EmailService(db=db)
+        except Exception:
+            email_service = EmailService()
+            db.close()
+            db = None
 
         for inv in pending.data:
             supabase.table("project_members") \
@@ -59,9 +66,13 @@ def accept_pending_invitations(user_id: str, email: str):
                         to_email=email,
                         project_name=project.data["name"],
                         inviter_name=inviter_name,
+                        is_existing_user=True,
                     )
             except Exception as e:
                 print(f"Error sending join notification: {e}")
+
+        if db is not None:
+            db.close()
 
     except Exception as e:
         print(f"Error accepting pending invitations: {e}")

@@ -5,7 +5,7 @@ from typing import List
 from uuid import UUID
 from pydantic import BaseModel
 from datetime import datetime, timedelta, timezone
-import random
+import secrets
 
 from backend.core.database import get_db
 from backend.models import Profile
@@ -79,7 +79,7 @@ def generate_line_verification_code(
         raise HTTPException(status_code=400, detail="Line account already bound")
 
     # Generate 6-digit code
-    verification_code = f"{random.randint(0, 999999):06d}"
+    verification_code = f"{secrets.randbelow(1000000):06d}"
 
     # Set expiration (15 minutes from now)
     expires_at = datetime.now(timezone.utc) + timedelta(minutes=15)

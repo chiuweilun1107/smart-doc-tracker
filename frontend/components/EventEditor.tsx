@@ -5,7 +5,7 @@ import { toast } from "@/lib/toast"
 import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Calendar as CalendarIcon, Save, Check, Edit, CheckCircle2 } from "lucide-react"
+import { Calendar as CalendarIcon, Save, Check, Edit, CheckCircle2, Loader2 } from "lucide-react"
 
 interface Event {
     id: string
@@ -92,7 +92,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
     }
 
     if (events.length === 0) {
-        return <div className="text-center py-10 text-gray-500">尚無解析出的事件</div>
+        return <div className="text-center py-10 text-muted-foreground">尚無解析出的事件</div>
     }
 
     // Sort events by due_date (earliest first)
@@ -111,7 +111,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
                 <p>信任度是 AI 對該截止日期確定性的評估，分數越高表示 AI 越確定這是一個明確的截止日期。建議檢查低於 80% 的項目。</p>
             </div>
             {sortedEvents.map(event => (
-                <div key={event.id} className="p-4 border rounded-lg bg-white shadow-sm flex flex-col space-y-3">
+                <div key={event.id} className="p-4 border rounded-lg bg-card shadow-sm flex flex-col space-y-3">
                     {editingId === event.id ? (
                         // Edit Mode
                         <div className="space-y-3">
@@ -121,7 +121,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
                                 placeholder="事件標題"
                             />
                             <div className="flex items-center space-x-2">
-                                <CalendarIcon className="w-4 h-4 text-gray-500" />
+                                <CalendarIcon className="w-4 h-4 text-muted-foreground" />
                                 <Input
                                     type="date"
                                     value={editForm.due_date}
@@ -141,7 +141,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
                         <>
                             <div className="flex justify-between items-start">
                                 <div className="flex items-center gap-2 flex-1">
-                                    <h3 className="font-medium text-gray-900">{event.title}</h3>
+                                    <h3 className="font-medium text-foreground">{event.title}</h3>
                                     {event.status === 'confirmed' && (
                                         <Badge variant="default" className="bg-green-600 hover:bg-green-700">
                                             <Check className="w-3 h-3 mr-1" />
@@ -157,7 +157,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
                                     {event.confidence_score}%
                                 </Badge>
                             </div>
-                            <div className="flex items-center text-sm text-gray-600">
+                            <div className="flex items-center text-sm text-foreground/80">
                                 <CalendarIcon className="w-4 h-4 mr-2" />
                                 <span className="font-medium">{formatDate(event.due_date)}</span>
                             </div>
@@ -167,7 +167,7 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
                                         variant="ghost"
                                         size="sm"
                                         onClick={() => handleUnconfirm(event.id)}
-                                        className="text-gray-600 hover:text-gray-700 hover:bg-gray-50"
+                                        className="text-foreground/80 hover:text-foreground hover:bg-muted"
                                     >
                                         <CheckCircle2 className="w-3 h-3 mr-1" />
                                         取消確認
@@ -195,5 +195,3 @@ export function EventEditor({ events, onUpdate }: EventEditorProps) {
         </div>
     )
 }
-
-import { Loader2 } from "lucide-react" // Import needed for saving state icon

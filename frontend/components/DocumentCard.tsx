@@ -113,10 +113,10 @@ export function DocumentCard({
                 onClick={onClick}
                 className={cn(
                     "group relative p-4 rounded-lg border transition-all cursor-pointer",
-                    "hover:shadow-md hover:border-gray-300",
+                    "hover:shadow-md hover:border-border",
                     isActive
                         ? "border-primary bg-primary/5 shadow-sm ring-2 ring-primary/20"
-                        : "border-gray-200 bg-white"
+                        : "border-border bg-card"
                 )}
             >
                 {/* Main Content */}
@@ -124,11 +124,11 @@ export function DocumentCard({
                     {/* File Icon */}
                     <div className={cn(
                         "flex-shrink-0 w-10 h-10 rounded-lg flex items-center justify-center",
-                        isActive ? "bg-primary/10" : "bg-gray-100"
+                        isActive ? "bg-primary/10" : "bg-muted"
                     )}>
                         <FileIcon className={cn(
                             "w-5 h-5",
-                            isActive ? "text-primary" : "text-gray-500"
+                            isActive ? "text-primary" : "text-muted-foreground"
                         )} />
                     </div>
 
@@ -149,17 +149,17 @@ export function DocumentCard({
                                     }
                                 }}
                                 onClick={(e) => e.stopPropagation()}
-                                className="w-full text-sm font-medium text-gray-900 border-b-2 border-primary focus:outline-none"
+                                className="w-full text-sm font-medium text-foreground border-b-2 border-primary focus:outline-none"
                                 autoFocus
                             />
                         ) : (
-                            <h4 className="text-sm font-medium text-gray-900 truncate mb-1">
+                            <h4 className="text-sm font-medium text-foreground truncate mb-1">
                                 {document.original_filename || document.filename || '未命名文件'}
                             </h4>
                         )}
 
                         {/* Metadata */}
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                             <span className="font-medium">{document.file_type?.toUpperCase()}</span>
                             <span>•</span>
                             <div className="flex items-center gap-1">

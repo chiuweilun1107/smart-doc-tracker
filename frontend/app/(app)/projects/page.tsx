@@ -4,7 +4,9 @@ import { useState, useEffect } from "react"
 import { apiClient } from "@/lib/api"
 import { ProjectCard } from "@/components/ProjectCard"
 import { NewProjectDialog } from "@/components/NewProjectDialog"
-import { Loader2 } from "lucide-react"
+import { FolderOpen } from "lucide-react"
+import { LoadingState } from "@/components/LoadingState"
+import { EmptyState } from "@/components/EmptyState"
 
 export default function ProjectsPage() {
     const [projects, setProjects] = useState<any[]>([])
@@ -27,27 +29,27 @@ export default function ProjectsPage() {
     }
 
     return (
-        <div className="container mx-auto py-8">
+        <div className="container mx-auto py-8 px-4 md:px-6">
             <div className="flex justify-between items-center mb-8">
                 <div>
                     <h1 className="text-3xl font-bold">專案列表</h1>
-                    <p className="text-gray-500 mt-1">管理您的所有文件追蹤專案</p>
+                    <p className="text-muted-foreground mt-1">管理您的所有文件追蹤專案</p>
                 </div>
                 <NewProjectDialog onProjectCreated={fetchProjects} />
             </div>
 
             {loading ? (
-                <div className="flex justify-center items-center h-64">
-                    <Loader2 className="w-8 h-8 animate-spin text-gray-400" />
-                </div>
+                <LoadingState />
+            ) : projects.length === 0 ? (
+                <EmptyState
+                    icon={FolderOpen}
+                    title="尚無專案"
+                    description="建立您的第一個專案，開始追蹤文件截止日期。"
+                    action={<NewProjectDialog onProjectCreated={fetchProjects} />}
+                />
             ) : (
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {projects.length === 0 ? (
-                        <div className="col-span-full text-center py-10 text-gray-500">
-                            尚無專案，請點擊右上方按鈕新增。
-                        </div>
-                    ) : (
-                        projects.map((project: any) => (
+                    {projects.map((project: any) => (
                             <ProjectCard
                                 key={project.id}
                                 id={project.id}
@@ -58,8 +60,7 @@ export default function ProjectsPage() {
                                 createdAt={project.created_at}
                                 onProjectChanged={fetchProjects}
                             />
-                        ))
-                    )}
+                        ))}
                 </div>
             )}
         </div>
