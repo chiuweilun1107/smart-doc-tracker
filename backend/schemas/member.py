@@ -19,6 +19,8 @@ class MemberResponse(BaseModel):
     joined_at: Optional[datetime] = None
     # Populated from profiles join
     full_name: Optional[str] = None
+    # Email notification status
+    email_sent: Optional[bool] = None
 
     class Config:
         from_attributes = True
