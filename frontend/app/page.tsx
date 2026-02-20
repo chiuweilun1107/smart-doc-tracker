@@ -56,7 +56,7 @@ export default async function LandingPage() {
               v2.0 已上線 — 支援 LINE 整合通知
             </div>
             <h1 className="text-4xl md:text-6xl font-bold tracking-tight text-slate-900 dark:text-white mb-6 leading-tight">
-              再也不錯過<span className="text-blue-600">政府標案</span><br className="hidden md:block" />截止日
+              再也不錯過<span className="text-blue-600">重要專案</span><br className="hidden md:block" />截止日
             </h1>
             <p className="max-w-2xl mx-auto text-lg md:text-xl text-slate-600 dark:text-slate-400 mb-10 leading-relaxed">
               AI 驅動的智能文件追蹤系統，自動解析文件、LINE 即時通知、截止日管理，專為高效團隊打造。
@@ -84,7 +84,7 @@ export default async function LandingPage() {
           <div className="container mx-auto px-4">
             <div className="text-center max-w-3xl mx-auto mb-16">
               <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-4">您需要的一切文件追蹤工具</h2>
-              <p className="text-slate-600 dark:text-slate-400">透過我們強大的工具組合，簡化您的標案管理流程。</p>
+              <p className="text-slate-600 dark:text-slate-400">透過我們強大的工具組合，簡化您的專案管理流程。</p>
             </div>
 
             <div className="grid md:grid-cols-3 gap-8">
@@ -95,7 +95,7 @@ export default async function LandingPage() {
                 </div>
                 <h3 className="text-xl font-bold text-slate-900 dark:text-white mb-3">AI 智能文件解析</h3>
                 <p className="text-slate-600 dark:text-slate-400 leading-relaxed">
-                  透過先進的 OCR 技術，自動從複雜的政府標案文件中擷取截止日期、里程碑與需求條件。
+                  透過先進的 AI 技術，自動從專案文件中擷取截止日期、里程碑與關鍵需求。
                 </p>
               </div>
 

@@ -107,7 +107,7 @@ export default function LoginPage() {
 
                 <div className="z-10 space-y-8 max-w-lg">
                     <h1 className="text-4xl font-bold leading-tight">
-                        再也不錯過政府標案截止日
+                        再也不錯過重要專案截止日
                     </h1>
                     <ul className="space-y-4 text-zinc-300">
                         <li className="flex items-start gap-3">

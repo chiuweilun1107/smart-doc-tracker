@@ -90,7 +90,7 @@ export default function SignupPage() {
                         立即加入 Smart Doc Tracker
                     </h1>
                     <p className="text-lg text-zinc-300">
-                        開始使用最先進的政府標案文件追蹤系統。
+                        開始使用最先進的專案文件追蹤系統。
                     </p>
                 </div>
 
