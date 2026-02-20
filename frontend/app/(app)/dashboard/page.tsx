@@ -22,6 +22,8 @@ export default function DashboardPage() {
 
     const fetchStats = async () => {
         try {
+            // Call /auth/me first to auto-accept pending invitations (synchronous)
+            await apiClient.get('/auth/me').catch(() => {})
             const res = await apiClient.get('/dashboard/stats')
             setStats(res.data)
         } catch (error: any) {
