@@ -57,7 +57,7 @@ export default function LoginPage() {
                 redirectTo: `${window.location.origin}/reset-password`,
             })
             if (error) {
-                setError(error.message)
+                setError(translateError(error.message))
             } else {
                 setError(null)
                 alert("密碼重設信已發送，請檢查信箱")
