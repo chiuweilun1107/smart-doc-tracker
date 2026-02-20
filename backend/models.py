@@ -39,7 +39,7 @@ class Document(Base):
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     project_id = Column(UUID(as_uuid=True), ForeignKey("projects.id"), nullable=False)
-    filename = Column(String, nullable=False)
+    filename = Column("original_filename", String, nullable=False)
     file_path = Column(String, nullable=False) # S3/Storage path
     file_type = Column(String, nullable=False) # e.g., 'pdf'
     status = Column(String, default="pending") # pending, processing, completed, error

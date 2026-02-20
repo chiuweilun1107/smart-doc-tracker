@@ -39,6 +39,7 @@ class NotificationService:
                     self._process_event(db, event)
                 except Exception as e:
                     logger.error(f"Error processing event {event.id}: {e}")
+                    db.rollback()
 
         except Exception as e:
             logger.error(f"Scheduler failed: {e}")
@@ -50,9 +51,17 @@ class NotificationService:
             return
 
         try:
-            due_date = datetime.strptime(event.due_date, "%Y-%m-%d").date()
-        except ValueError:
-            logger.warning(f"Invalid date format for event {event.id}: {event.due_date}")
+            if isinstance(event.due_date, datetime):
+                due_date = event.due_date.date()
+            elif isinstance(event.due_date, str):
+                due_date = datetime.strptime(event.due_date, "%Y-%m-%d").date()
+            elif hasattr(event.due_date, "year"):
+                due_date = event.due_date
+            else:
+                logger.warning(f"Unknown date type for event {event.id}: {type(event.due_date)}")
+                return
+        except (ValueError, TypeError) as e:
+            logger.warning(f"Invalid date for event {event.id}: {event.due_date} ({e})")
             return
 
         today = datetime.now().date()
@@ -164,23 +173,26 @@ class NotificationService:
         if channels is None:
             channels = {"line", "email"}
 
+        # Ensure due_date is a string for serialization
+        due_date_str = str(event.due_date)[:10] if event.due_date else "unknown"
+
         message_content = (
             f"事項：{event.title}\n"
             f"專案：{project.name}\n"
-            f"截止：{event.due_date}\n"
+            f"截止：{due_date_str}\n"
             f"剩餘：{days_left} 天"
         )
 
         # 1. LINE notification
         if "line" in channels and user.line_user_id and settings.LINE_CHANNEL_ACCESS_TOKEN:
-            self._send_line(db, user, event, project, days_left, message_content)
+            self._send_line(db, user, event, project, days_left, message_content, due_date_str)
 
         # 2. Email notification
         if "email" in channels and user.email:
-            self._send_email(db, user, event, project, days_left, message_content)
+            self._send_email(db, user, event, project, days_left, message_content, due_date_str)
 
     def _send_line(
-        self, db, user, event, project, days_left, message_content
+        self, db, user, event, project, days_left, message_content, due_date_str=None
     ):
         try:
             from linebot import LineBotApi
@@ -189,7 +201,7 @@ class NotificationService:
             flex_message = self._create_flex_message(
                 project_name=project.name,
                 task_title=event.title,
-                due_date=event.due_date,
+                due_date=due_date_str or str(event.due_date)[:10],
                 days_left=days_left,
                 event_id=str(event.id),
             )
@@ -203,14 +215,14 @@ class NotificationService:
             self._log(db, user.id, event.id, "line", "failed", message_content, str(e))
 
     def _send_email(
-        self, db, user, event, project, days_left, message_content
+        self, db, user, event, project, days_left, message_content, due_date_str=None
     ):
         try:
             success = self.email_service.send_deadline_reminder(
                 to_email=user.email,
                 project_name=project.name,
                 task_title=event.title,
-                due_date=event.due_date,
+                due_date=due_date_str or str(event.due_date)[:10],
                 days_left=days_left,
                 project_id=str(project.id),
             )
